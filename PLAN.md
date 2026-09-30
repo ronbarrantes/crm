@@ -1,20 +1,23 @@
 # Fieldnotes: a personal CRM for learning from every conversation
 
 > Working name: **Fieldnotes** (not final; check availability before launch).
-> Status: product plan. Built as a product for sale from day one; the founder is the first user.
+> Status: Phase 1 locked (2026-09-30). Built for sale eventually; for now it's an MVP for the founder, who is the only user. Scope is in §11; design and accessibility in §16.
 
 ---
 
 ## 0. Instructions for the coding agent
 
 1. Read this whole document before writing any code.
-2. **Treat this as a commercial product**, not a personal tool. Every user has their own private account and data. Build accounts, data isolation, export and deletion properly from the start.
+2. **MVP for the founder first, product later.** Every record belongs to one account and is checked on every query from day one (cheap now, painful later). Export, account deletion, onboarding and open sign-up wait for the "Before launch" phase (§11).
 3. **Stack (decided):**
    - **TanStack Start** (React, TypeScript) for the app
    - **Convex** for the database, backend functions and file storage
-   - **Clerk** for authentication
-   - Installable web app (PWA), mobile-first
-4. Propose an implementation plan for **Phase 1 only** (§11) and confirm it with the owner before building. Don't build Phase 2 or 3 features unless asked.
+   - **Clerk** for authentication (sign-in only; sign-up restricted to the owner)
+   - **Tailwind v4 + Radix primitives** for UI; native `<input type="date">` / `datetime-local` for dates
+   - Installable web app (PWA), mobile-first for capture, dashboards on desktop
+   - Hosted on **Vercel**
+   - `../paperkoi` may be used as a reference for Clerk ↔ Convex wiring only. Don't copy its structure, components or design.
+4. Build **Phase 1 only** (§11), in the order listed there, so whatever exists at any point is usable at a meetup. Don't build later-phase features unless asked.
 5. Resolve the open questions in §13 with the owner as they come up.
 6. Follow the naming rules in §15. Product copy, UI text and marketing must use this product's own vocabulary.
 7. When in doubt, pick the simpler option and mention the tradeoff.
@@ -117,57 +120,73 @@ Around every meeting there's a loop: **Prep → Talk → Debrief → Follow up.*
 
 ### 7.1 Quick capture at an event (target: under 10 seconds, one hand)
 
-- The app opens straight to the **capture screen** (home-screen shortcut).
-- **Event mode:** set "Tonight: Business meetup, South Charlotte" once. Every capture is tagged automatically with event, date and place.
+- One tap from **Today** (the home screen). While event mode is on, the app opens straight to Capture.
+- **Event mode (minimal):** set "Tonight: Business meetup, South Charlotte" once. Every capture is tagged with the event, date and place. It **turns off automatically at midnight local time** and can be ended early. No separate Events screen in Phase 1.
 - **Minimum to save:** a name (or a description like "guy in blue jacket, cleaning biz") plus **one hook line** ("ex-bioengineer, now finance, likes craft beer").
-- **Optional in the same screen:** a photo (business card, badge), a tag, a quick voice memo (Phase 2).
+- **Optional in the same screen:** a photo (business card, badge), compressed on the device and stored in Convex. Voice memos are Phase 2.
 - Save → back to a blank capture screen for the next person.
-- **Must work offline** (venues often have bad signal) and sync when back online.
-- Everything lands in the **Inbox** for triage.
+- **Online only.** No offline queue (decided; see §13).
+- Saving creates a **Person marked "needs triage"**. There is no separate Capture record; the **Inbox** is the list of people needing triage.
 
 **"Swap" QR (Phase 2):** the user's phone shows a QR code. The other person scans it and lands on a short page asking for name, email or phone, and "what do you do?" Their entry goes straight into the user's Inbox, tagged with the current event. Optionally they can save the user's contact card. No typing for the user, and it's a natural reason to follow up. (This page is also a subtle marketing surface for the product; see §12.)
 
 ### 7.2 Triage (the same night)
 
-The Inbox shows the event's captures. For each one:
+The Inbox lists people marked "needs triage" (tonight's first). For each one:
 
-- Confirm it's a new person, or **merge** with an existing one
+- Keep as a new person, or **merge** into an existing one (hook line, photo and event fold into the existing person; the duplicate is deleted)
 - Fill in details: company, role, contact info, personal notes
 - Link to one or more **ideas** (or none)
 - Set a **follow-up** (default: within 48 hours)
-- Optionally draft the follow-up message
+- Mark done → leaves the Inbox
 
 Goal: an empty Inbox by the next morning.
 
-### 7.3 Meeting prep: the Brief (readable in 30 seconds on a phone)
+The relationship loop: **meet → capture → triage → plan meeting → meet → debrief → next step → plan the next meeting → …** until it becomes a product, a customer, a friend, or honestly nothing.
+
+### 7.3 Planning a meeting
+
+- From a person's page: **Plan meeting**. A meeting (Conversation) is created _before_ it happens, with status **planned**.
+- Fields: date/time, type (coffee, call, demo, event), **intent** (what they said it's for), and **my 3 questions** for this meeting.
+- If the person is linked to an idea, the 3 questions are pre-filled from that idea's Key Questions and are editable.
+- Unplanned conversations (a chance chat) can be debriefed directly; the questions part is just empty.
+
+### 7.4 Meeting prep: the Brief (readable in 30 seconds on a phone)
+
+Read before the meeting, then put the phone away. Nothing is typed during the conversation.
 
 - Who they are and **how we met** (event, date, introduced by)
 - Personal details (family, hobbies, background)
+- **My 3 questions** for this meeting
 - **Last conversation's top 3 takeaways**
 - **Open next steps** both ways (what I owe them, what they owe me)
-- **Key Questions** for their segment or linked ideas
 - **Intent check:** "What did they say this meeting is for?" If blank or vague, prompt: _"Consider asking what they have in mind before you meet."_
 
-### 7.4 Debrief after a meeting (guided, about 3 minutes)
+### 7.5 Debrief after a meeting (one form, about 3 minutes)
 
-1. **Top 3 takeaways** (required)
-2. **Key Questions progress:** for each question, answered / partly / not asked, plus a short note
-3. **Signals:** quick-add notes with signal-type chips, optionally linked to a belief as _supports_ or _contradicts_
-4. **Honesty check:**
+A single scrolling form, not a step-by-step wizard. Opening a planned meeting's debrief marks it **debriefed** when saved.
+
+1. **My 3 questions:** for each, answered / partly / not asked, plus what I learned
+2. **Top 3 takeaways** (required)
+3. **Signals:** quick-add notes with signal-type chips, optionally linked to an idea
+4. **Honesty check** (three toggles):
    - "Did I get facts about their past, or compliments and hypotheticals?"
    - "Did I pitch too early?"
-   - "Were they pitching _me_?" (flag)
-5. **Next step:** type (none / time / introduction / money), description, owner, due date. If "none," the app gently notes it.
-6. **People mentioned:** quick-create stub contacts ("offered to introduce me to their accountant")
-7. **Personal notes:** anything human worth remembering
+   - "Were they pitching _me_?" (sets the flag)
+5. **Next step:** type (none / time / introduction / money), description, owner, due date. If "none," the app gently notes it. If "time," offer **Plan it now**, which creates the next planned meeting.
+6. **Personal notes:** anything human worth remembering
 
-### 7.5 Keep in touch
+Phase 2: link signals to a belief as _supports_ / _contradicts_; "people mentioned" stub contacts.
+
+### 7.6 Keep in touch (Phase 2)
 
 - Each person has a **cadence** based on relationship stage (defaults, e.g., friend: monthly, contact: quarterly; editable).
 - A **"Reach out"** list shows who's due.
 - A **Gives** log records what the user has done for them.
 
-### 7.6 Weekly idea review
+### 7.7 Weekly idea review
+
+Phase 1: each idea has a name, description, status, up to 3 Key Questions, a list of beliefs, and the signals linked to it. The rest below (counts per belief, segments) is Phase 2.
 
 For each idea:
 
@@ -192,6 +211,8 @@ A single "lead score" would give false precision. Show simple badges instead:
 | **Access**                      | Decision-maker? Can they buy? Can they introduce me to buyers?                          |
 | **Flags**                       | Pitching me, Stalled, Not a fit, Great connector                                        |
 
+**Phase 1 badges:** Relationship (set manually), Progress (computed from the person's strongest next step), and Flags (Pitching me, Not a fit, Great connector). Problem strength, Access and the automatic "Stalled" flag are Phase 2.
+
 The People list can sort by an optional "needs attention" order (follow-up due, open next steps, strong problem with no next step), with the badges visible so the reasoning is clear.
 
 ---
@@ -201,62 +222,79 @@ The People list can sort by an optional "needs attention" order (follow-up due, 
 Every record belongs to exactly one **account** (the user). No record is ever readable by another account.
 
 - **Account / User**: profile, settings (cadence defaults), plan (for billing later)
-- **Person**: name, photo, hook line, role, company, industry, contact info, personal notes, relationship stage, cadence, flags, tags, how met (event, date, introduced by), source (capture / swap / manual)
-- **Organization** (light, optional): name, industry, notes
-- **Event**: name, date, place, notes
-- **Capture** (Inbox item): raw text, photo, audio (later), event, timestamp, status (new / triaged / merged)
-- **Conversation**: person(s), date, type (event, coffee, call, demo), stated intent, top 3 takeaways, Key Questions progress, honesty-check answers, "they pitched me" flag, notes
-- **Signal**: conversation, person, type (§6.1), text (a direct quote when possible), linked idea(s), linked belief plus supports or contradicts
-- **Idea**: name, description, status, segments, beliefs, Key Questions
-- **Belief**: idea, statement, confidence (manual, with evidence counts shown)
-- **Segment**: idea, description
+**Phase 1:**
+
+- **Account / User**: the Clerk user; every record carries its owner ID
+- **Person**: name, photo, hook line, role, company, contact info, personal notes, relationship stage, flags, linked ideas, how met (event, date, introduced by), **needs triage** (true for fresh captures), follow-up date, source (capture / manual)
+- **Event**: name, date, place, ends at (midnight local)
+- **Conversation** (meeting): person, status (**planned / debriefed**), date/time, type (event, coffee, call, demo), stated intent, **my 3 questions** (each with answered / partly / not asked + note), top 3 takeaways, honesty-check answers, notes
+- **Signal**: conversation, person, type (§6.1), text (a direct quote when possible), linked idea(s)
+- **Idea**: name, description, status, Key Questions (up to 3)
+- **Belief**: idea, statement
 - **Next step**: conversation, owner (me or them), type, description, due date, done
-- **Give**: person, date, what the user did
-- **Person link**: person A → person B (introduced by, mentioned by)
-- **Reminder**: person, due date, reason
+
+**Later phases:** Organization, Segment, belief links on signals (supports / contradicts), confidence, Give, Person link, cadence, Reminder, plan/limits for billing. No separate Capture record: captures are People with "needs triage."
 
 ---
 
 ## 10. Screens
 
-1. **Capture** (default screen on mobile)
-2. **Inbox** (triage)
-3. **People** (search; filters: due, stage, idea, flag)
-4. **Person** (profile plus a timeline of conversations, signals, gives and next steps)
-5. **Brief** (pre-meeting)
-6. **Debrief** (post-meeting form)
-7. **Ideas** (list with status)
-8. **Idea** (evidence board: beliefs, signals, segments, Key Questions)
-9. **Events** (past events and who the user met)
-10. **Settings** (profile, cadence defaults, export, delete account)
-11. **Onboarding** (first-run: create a first idea with Key Questions, set up event mode, add a first person; offer sample data)
+**Phase 1:**
+
+1. **Sign in** (no sign-up page)
+2. **Today** (home): Capture button, upcoming meetings (→ Brief), due / overdue next steps and follow-ups, Inbox count. A multi-column dashboard on desktop.
+3. **Capture** (event mode banner, name, hook line, photo)
+4. **Inbox** (triage and merge)
+5. **People** (search; filters: due, stage, idea, flag)
+6. **Person** (profile, badges, timeline of meetings, signals and next steps; Plan meeting)
+7. **Plan meeting**
+8. **Brief** (pre-meeting)
+9. **Debrief** (post-meeting form)
+10. **Ideas** (list with status)
+11. **Idea** (description, Key Questions, beliefs, linked signals)
+12. **Settings** (theme, sign out)
+
+**Navigation:** on phones, a bottom tab bar: **Today · People · ＋Capture · Ideas · Inbox**, with Capture as the larger center button. On desktop, a left sidebar with the same items; People and Ideas use list + detail split views.
+
+**Later:** Events (Phase 2); full evidence board (Phase 2); Settings for cadence defaults, export and delete account, and Onboarding with sample data (Before launch).
 
 ---
 
 ## 11. Scope and phases
 
-### Phase 1: MVP (goal: the founder uses it at his next meeting)
+### Phase 1: MVP (goal: built 2026-09-30, used at the meetup on 2026-10-01)
 
-- Sign up / sign in (Clerk), with strict per-account data isolation (Convex)
-- Capture screen with event mode (text + photo)
-- Offline capture with a local queue that syncs when back online; installable PWA
-- Inbox and triage, including merge
-- People list and Person page
-- Conversation debrief: top 3, signals with type chips, honesty check, next step
-- Meeting Brief
-- Ideas with beliefs, segments and Key Questions
-- Follow-up list (due next steps and reminders)
-- Export all data (JSON and CSV) and delete account
-- Short onboarding with optional sample data
+Build in this order, deploying to Vercel as soon as there's something to deploy:
+
+1. Sign in (Clerk, sign-up restricted to the owner), per-account data checks in every Convex function; installable PWA shell; app layout and navigation
+2. Capture with minimal event mode (text + photo)
+3. Inbox and triage, including merge
+4. People list and Person page with badges
+5. Ideas with Key Questions and beliefs
+6. Plan meeting and Brief
+7. Debrief (my 3 questions, top 3, signals, honesty check, next step, Plan it now)
+8. Today screen / dashboard
+
+Development uses the fictional sample data in §14 (seeded in dev only).
 
 ### Phase 2
 
-- Swap QR page for contact exchange
-- Voice memo capture
-- Idea evidence board with supports and contradicts counts
+- Offline capture (IndexedDB outbox, append-only so no conflicts)
+- Events screen
+- Segments; signals linked to beliefs; idea evidence board with supports and contradicts counts
+- Problem strength and Access badges; automatic "Stalled" flag
+- "People mentioned" stub contacts and person-to-person links (intros and mentions)
 - Keep-in-touch cadences and the Reach out list
 - Gives log
-- Person-to-person links (intros and mentions)
+- Swap QR page for contact exchange
+- Voice memo capture
+
+### Before launch
+
+- Open sign-up
+- Onboarding with optional sample data
+- Export all data (JSON and CSV) and delete account
+- Name, trademark and domain check; Clerk production instance
 
 ### Phase 3 (optional AI helpers)
 
@@ -295,13 +333,13 @@ Every record belongs to exactly one **account** (the user). No record is ever re
 
 ## 13. Open questions for the owner
 
-1. **Offline sync:** Convex expects a connection. What's the approach for offline capture (e.g., a local IndexedDB outbox that syncs on reconnect), and how are conflicts handled?
-2. **PWA with TanStack Start:** service worker setup, install prompt, and how photo capture behaves on iOS and Android.
-3. **Photo storage:** Convex file storage with access checked per account; image compression on the device before upload.
-4. **Voice memos in Phase 1?** Or text and photo only to start?
-5. **Swap QR:** should scanning also offer the user's contact card automatically? What spam protection does the public page need?
-6. **Sample data:** ship a demo dataset for onboarding? (Suggested contents in §14.)
-7. **Name:** keep "Fieldnotes" or rename?
+1. ~~**Offline sync**~~ **Resolved:** online only in Phase 1. Offline capture moves to Phase 2.
+2. **PWA with TanStack Start:** service worker setup, install prompt, and how photo capture behaves on iOS and Android. (Technical; resolve while building.)
+3. ~~**Photo storage**~~ **Resolved:** Convex file storage, access checked per account, compressed on the device before upload.
+4. ~~**Voice memos in Phase 1?**~~ **Resolved:** no; text and photo only. Voice is Phase 2.
+5. **Swap QR:** should scanning also offer the user's contact card automatically? What spam protection does the public page need? (Phase 2.)
+6. ~~**Sample data**~~ **Resolved:** used in development now; onboarding sample data moves to Before launch.
+7. ~~**Name**~~ **Resolved:** keep "Fieldnotes" as the working name; check before launch.
 
 ---
 
@@ -356,3 +394,19 @@ Generic, fictional sample data for onboarding and development. **Never commit th
 - The capture-and-debrief method draws on well-known customer-discovery practices. **Don't reference any specific book, author or methodology by name** in UI text, marketing, help docs, onboarding or code comments that ship to users.
 - **Don't copy or closely paraphrase** distinctive phrases, lists or examples from existing books or courses. Use the product's own vocabulary (§6) and write original copy.
 - Concepts like "ask about past behavior, not future hypotheticals" are general practice and fine to express in our own words.
+
+---
+
+## 16. Design and accessibility (decided)
+
+**Look:** a calmer take on the owner's site (ronb.co). It should feel related to the site without looking like part of it.
+
+- **Keep from ronb.co:** Mona Sans (variable), system monospace for small labels, violet as the single accent, the 4 / 8 / 16 / 24 / 32 / 48 spacing scale, its dark-mode palette.
+- **Tone down:** borders use the light rule gray, not black. Primary buttons are violet, not black; secondary buttons are outlined or soft lavender. Headings at medium weight (500–600), normal width. A faint warm off-white background with white cards. Violet only for the main action and the active tab.
+- **Starting tokens (light):** paper `#fbfaf8`, card `#fff`, ink `#111015`, ink-2 `#5a5764`, rule `#e3e0e8`, accent `#5130d8`, soft `#e2d9ff`, ok `#1a9a58`.
+- **Starting tokens (dark):** paper `#0e0d13`, ink `#f2eff8`, ink-2 `#aaa4b9`, rule `#262330`, accent `#b6a2ff`, soft `#1d1929`, ok `#3fd88a`.
+- Light and dark mode, following the system setting with a manual override in Settings.
+
+**Accessibility (WCAG 2.2 AA minimum):** full keyboard support, correct labels and landmarks for screen readers, visible focus, touch targets of at least 44px, respects reduced motion, and never relies on color alone (signal chips and badges always carry text).
+
+**Devices:** Capture is designed for one-handed use on a phone. Review, planning and ideas are designed as dashboards on a laptop.
