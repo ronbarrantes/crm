@@ -1,0 +1,138 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Fieldnotes palette: a calmer take on ronb.co. See PLAN.md §16. */
+:root {
+  --paper: #fbfaf8;
+  --card: #ffffff;
+  --ink: #111015;
+  --ink-2: #5a5764;
+  --rule: #e3e0e8;
+  --rule-strong: #cfcad9;
+  --accent: #5130d8;
+  --accent-hover: #4325bd;
+  --on-accent: #ffffff;
+  --soft: #eee8ff;
+  --on-soft: #2e1d85;
+  --ok: #17804a;
+  --ok-soft: #e3f4ea;
+  --warn: #9a5b00;
+  --warn-soft: #fbf0dc;
+  --danger: #b4232f;
+  --danger-soft: #fbe6e7;
+  --focus: #5130d8;
+  color-scheme: light;
+}
+
+.dark {
+  --paper: #0e0d13;
+  --card: #16141d;
+  --ink: #f2eff8;
+  --ink-2: #aaa4b9;
+  --rule: #262330;
+  --rule-strong: #3a3744;
+  --accent: #b6a2ff;
+  --accent-hover: #c9baff;
+  --on-accent: #0e0d13;
+  --soft: #1d1929;
+  --on-soft: #d9cfff;
+  --ok: #3fd88a;
+  --ok-soft: #10241a;
+  --warn: #f2b554;
+  --warn-soft: #2a1f0c;
+  --danger: #ff8a93;
+  --danger-soft: #2c1215;
+  --focus: #b6a2ff;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Mona Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-soft: var(--soft);
+  --color-on-soft: var(--on-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: 'ss01';
+  }
+  h1,
+  h2,
+  h3 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--soft);
+    color: var(--on-soft);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .field {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--rule-strong);
+    background: var(--card);
+    padding: 0.625rem 0.75rem;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+  .field::placeholder {
+    color: var(--ink-2);
+    opacity: 0.8;
+  }
+  .field:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 0;
+    border-color: transparent;
+  }
+}
