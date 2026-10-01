@@ -1,12 +1,13 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import clsx from 'clsx'
+import { ConvexError } from 'convex/values'
 import { ArrowLeft, Check, Plus, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Badge, Button, ButtonLink, Card, ChipGroup, Field } from '~/components/ui'
-import { fromLocalInput, longDate } from '~/lib/format'
+import { fromLocalInput, longDate, relativeDay } from '~/lib/format'
 import { personById, saveDebrief, useData } from '~/lib/store'
 import type { HonestyCheck, MeetingQuestion, NextStepType, SignalType } from '~/lib/types'
-import { nextStepHint, nextStepLabel, nextStepTypes, progressLabel, signalHint, signalLabel, signalTypes } from '~/lib/vocab'
+import { meetingTypeLabel, nextStepHint, nextStepLabel, nextStepTypes, progressLabel, signalHint, signalLabel, signalTypes } from '~/lib/vocab'
 
 export const Route = createFileRoute('/meetings/$meetingId/debrief')({ component: Debrief })
 
@@ -67,6 +68,9 @@ function Debrief() {
     )
   }
 
+  // Already debriefed (reopened later): show what was saved instead of a fresh form.
+  if (meeting.status === 'debriefed') return <SavedDebrief meetingId={meeting.id} />
+
   function addSignal() {
     if (!sigText.trim()) return
     setSignals((s) => [...s, { key: Date.now(), type: sigType, text: sigText.trim(), ideaIds: sigIdea ? [sigIdea] : [] }])
@@ -97,8 +101,12 @@ function Debrief() {
       })
       setSaved(true)
       window.scrollTo({ top: 0 })
-    } catch {
-      setSaveError('Couldn’t save the debrief. Check your connection and try again.')
+    } catch (e) {
+      setSaveError(
+        e instanceof ConvexError
+          ? String(e.data)
+          : 'Couldn’t save the debrief. Your answers are still here. Check your connection and try again.',
+      )
     } finally {
       setSaving(false)
     }
@@ -355,5 +363,113 @@ function YesNo({ label, hint, value, onChange }: { label: string; hint?: string;
         ))}
       </div>
     </fieldset>
+  )
+}
+
+/** Read-only view of a debrief that has already been saved. Phase 1 debriefs are submitted once. */
+function SavedDebrief({ meetingId }: { meetingId: string }) {
+  const data = useData()
+  const meeting = data.meetings.find((m) => m.id === meetingId)
+  const person = meeting && personById(data, meeting.personId)
+  if (!meeting || !person) return null
+  const signals = data.signals.filter((s) => s.meetingId === meeting.id)
+  const steps = data.nextSteps.filter((n) => n.meetingId === meeting.id)
+  const yesNo = (v: boolean | null) => (v === null ? 'Not answered' : v ? 'Yes' : 'No')
+
+  return (
+    <article className="mx-auto flex max-w-2xl flex-col gap-4">
+      <Link to="/people/$personId" params={{ personId: person.id }} className="inline-flex min-h-11 items-center gap-1 self-start text-sm font-medium text-ink-2">
+        <ArrowLeft aria-hidden className="size-4" /> {person.name}
+      </Link>
+      <header>
+        <p className="label">
+          Debrief · {meetingTypeLabel[meeting.type]} · {longDate(meeting.at)}
+        </p>
+        <h1 className="text-2xl">What I learned from {person.name}</h1>
+        <p className="mt-1 text-sm text-ink-2">Saved. Debriefs can’t be changed once submitted.</p>
+      </header>
+
+      {meeting.questions.length > 0 && (
+        <Card className="p-4">
+          <h2 className="label mb-2">My questions</h2>
+          <ol className="flex flex-col gap-3">
+            {meeting.questions.map((q, i) => (
+              <li key={i}>
+                <p className="font-medium">{q.text}</p>
+                <p className="text-sm text-ink-2">
+                  {progressLabel[q.progress]}
+                  {q.note && ` · ${q.note}`}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
+
+      <Card className="p-4">
+        <h2 className="label mb-2">Top takeaways</h2>
+        <ul className="list-disc pl-5">
+          {meeting.takeaways.map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ul>
+      </Card>
+
+      {signals.length > 0 && (
+        <Card className="p-4">
+          <h2 className="label mb-2">Signals</h2>
+          <ul className="flex flex-col gap-1.5">
+            {signals.map((s) => (
+              <li key={s.id} className="flex items-start gap-2 text-sm">
+                <Badge tone={s.type === 'noise' ? 'neutral' : 'accent'} className="mt-0.5">
+                  {signalLabel[s.type]}
+                </Badge>
+                <span className={clsx(s.type === 'noise' && 'text-ink-2')}>{s.text}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <Card className="p-4">
+        <h2 className="label mb-2">Honesty check</h2>
+        <dl className="grid gap-1 text-sm sm:grid-cols-[1fr_auto]">
+          <dt>Got facts about their past</dt>
+          <dd className="font-medium">{yesNo(meeting.honesty.gotFacts)}</dd>
+          <dt>Pitched too early</dt>
+          <dd className="font-medium">{yesNo(meeting.honesty.pitchedTooEarly)}</dd>
+          <dt>They were pitching me</dt>
+          <dd className="font-medium">{yesNo(meeting.honesty.theyPitchedMe)}</dd>
+        </dl>
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="label mb-2">Next step</h2>
+        {steps.map((n) =>
+          n.type === 'none' ? (
+            <p key={n.id} className="text-sm text-ink-2">
+              None agreed.
+            </p>
+          ) : (
+            <p key={n.id} className="text-sm">
+              <span className="font-medium">{n.description || nextStepLabel[n.type]}</span>
+              <span className="text-ink-2">
+                {' '}
+                · {nextStepLabel[n.type]} · {n.owner === 'me' ? 'I own it' : 'They own it'}
+                {n.dueAt && ` · due ${relativeDay(n.dueAt)}`}
+                {n.done && ' · done'}
+              </span>
+            </p>
+          ),
+        )}
+      </Card>
+
+      {meeting.notes && (
+        <Card className="p-4">
+          <h2 className="label mb-2">Personal notes</h2>
+          <p className="whitespace-pre-line">{meeting.notes}</p>
+        </Card>
+      )}
+    </article>
   )
 }

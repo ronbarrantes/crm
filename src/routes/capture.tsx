@@ -22,6 +22,7 @@ function Capture() {
   const [photo, setPhoto] = useState<{ file: File; preview: string }>();
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const tonight = data.people.filter((p) => event && p.eventId === event.id);
@@ -30,8 +31,9 @@ function Capture() {
     nameRef.current?.focus();
   }, []);
 
-  function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     if (!name.trim() || !hook.trim()) {
       setError(
         !name.trim()
@@ -40,23 +42,33 @@ function Capture() {
       );
       return;
     }
-    // Clear right away so the next person can be captured while this one saves.
-    const draft = { name: name.trim(), hookLine: hook.trim(), photo };
-    setName("");
-    setHook("");
-    setPhoto(undefined);
+    // One save at a time: the draft stays put (read-only) until the server confirms,
+    // so a failure can never land on top of the next person's details.
+    const savedName = name.trim();
+    setSaving(true);
     setError("");
-    setStatus(`Saving ${draft.name}…`);
-    nameRef.current?.focus();
-    capture({ ...draft, photo: draft.photo?.file, eventId: event?.id })
-      .then(() => setStatus(`Saved ${draft.name}. Ready for the next person.`))
-      .catch(() => {
-        setName(draft.name);
-        setHook(draft.hookLine);
-        setPhoto(draft.photo);
-        setStatus("");
-        setError(`Couldn’t save ${draft.name}. Check your connection and try again.`);
+    setStatus("");
+    try {
+      const { eventDropped } = await capture({
+        name: savedName,
+        hookLine: hook.trim(),
+        photo: photo?.file,
+        eventId: event?.id,
       });
+      setName("");
+      setHook("");
+      setPhoto(undefined);
+      setStatus(
+        eventDropped
+          ? `Saved ${savedName}. Tonight’s event had already ended, so they weren’t tagged with it.`
+          : `Saved ${savedName}. Ready for the next person.`,
+      );
+    } catch {
+      setError(`Couldn’t save ${savedName}. Your entry is still here. Check your connection and try again.`);
+    } finally {
+      setSaving(false);
+      nameRef.current?.focus();
+    }
   }
 
   return (
@@ -80,6 +92,7 @@ function Capture() {
             autoCapitalize="words"
             enterKeyHint="next"
             value={name}
+            readOnly={saving}
             onChange={(e) => setName(e.target.value)}
             aria-invalid={!!error && !name.trim()}
           />
@@ -92,6 +105,7 @@ function Capture() {
             placeholder="Ex-engineer, owns a farm, likes craft beer"
             enterKeyHint="done"
             value={hook}
+            readOnly={saving}
             onChange={(e) => setHook(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) save(e);
@@ -121,12 +135,12 @@ function Capture() {
                 alt="Photo to attach"
                 className="size-16 rounded-xl object-cover"
               />
-              <Button variant="ghost" onClick={() => setPhoto(undefined)}>
+              <Button variant="ghost" disabled={saving} onClick={() => setPhoto(undefined)}>
                 <X aria-hidden className="size-4" /> Remove photo
               </Button>
             </div>
           ) : (
-            <Button onClick={() => fileRef.current?.click()}>
+            <Button disabled={saving} onClick={() => fileRef.current?.click()}>
               <Camera aria-hidden className="size-5" /> Photo of card or badge
             </Button>
           )}
@@ -144,9 +158,11 @@ function Capture() {
 
         <button
           type="submit"
-          className="min-h-14 rounded-2xl bg-accent text-lg font-semibold text-on-accent hover:bg-accent-hover"
+          disabled={saving}
+          aria-disabled={saving}
+          className="min-h-14 rounded-2xl bg-accent text-lg font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-70"
         >
-          Save
+          {saving ? "Saving…" : "Save"}
         </button>
         <p
           role="status"

@@ -1,4 +1,4 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { mutation } from './_generated/server'
 import { own, requireOwner } from './lib'
 import { honesty, meetingQuestion, meetingType, nextStepType, signalType } from './schema'
@@ -52,6 +52,9 @@ export const saveDebrief = mutation({
   handler: async (ctx, args) => {
     const ownerId = await requireOwner(ctx)
     const meeting = await own(ctx, ownerId, args.meetingId)
+    // One debrief per meeting. Mutations are transactions, so a repeat or concurrent submit fails here
+    // instead of appending a second set of signals and next steps.
+    if (meeting.status !== 'planned') throw new ConvexError('This meeting has already been debriefed')
     const person = await own(ctx, ownerId, meeting.personId)
     const takeaways = args.takeaways.map((t) => t.trim()).filter(Boolean)
     if (takeaways.length === 0) throw new Error('Add at least one takeaway')
