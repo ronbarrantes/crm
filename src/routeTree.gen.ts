@@ -15,12 +15,12 @@ import { Route as IdeasRouteImport } from './routes/ideas'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as PeopleRouteImport } from './routes/people'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as IdeasIndexRouteImport } from './routes/ideas.index'
 import { Route as IdeasIdeaIdRouteImport } from './routes/ideas.$ideaId'
 import { Route as MeetingsNewRouteImport } from './routes/meetings.new'
 import { Route as PeopleIndexRouteImport } from './routes/people.index'
 import { Route as PeoplePersonIdRouteImport } from './routes/people.$personId'
+import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as MeetingsMeetingIdBriefRouteImport } from './routes/meetings.$meetingId.brief'
 import { Route as MeetingsMeetingIdDebriefRouteImport } from './routes/meetings.$meetingId.debrief'
 
@@ -54,11 +54,6 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IdeasIndexRoute = IdeasIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -84,6 +79,11 @@ const PeoplePersonIdRoute = PeoplePersonIdRouteImport.update({
   path: '/$personId',
   getParentRoute: () => PeopleRoute,
 } as any)
+const SignInSplatRoute = SignInSplatRouteImport.update({
+  id: '/sign-in/$',
+  path: '/sign-in/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MeetingsMeetingIdBriefRoute = MeetingsMeetingIdBriefRouteImport.update({
   id: '/meetings/$meetingId/brief',
   path: '/meetings/$meetingId/brief',
@@ -103,10 +103,10 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof InboxRoute
   '/people': typeof PeopleRouteWithChildren
   '/settings': typeof SettingsRoute
-  '/sign-in': typeof SignInRoute
   '/ideas/$ideaId': typeof IdeasIdeaIdRoute
   '/meetings/new': typeof MeetingsNewRoute
   '/people/$personId': typeof PeoplePersonIdRoute
+  '/sign-in/$': typeof SignInSplatRoute
   '/ideas/': typeof IdeasIndexRoute
   '/people/': typeof PeopleIndexRoute
   '/meetings/$meetingId/brief': typeof MeetingsMeetingIdBriefRoute
@@ -117,10 +117,10 @@ export interface FileRoutesByTo {
   '/capture': typeof CaptureRoute
   '/inbox': typeof InboxRoute
   '/settings': typeof SettingsRoute
-  '/sign-in': typeof SignInRoute
   '/ideas/$ideaId': typeof IdeasIdeaIdRoute
   '/meetings/new': typeof MeetingsNewRoute
   '/people/$personId': typeof PeoplePersonIdRoute
+  '/sign-in/$': typeof SignInSplatRoute
   '/ideas': typeof IdeasIndexRoute
   '/people': typeof PeopleIndexRoute
   '/meetings/$meetingId/brief': typeof MeetingsMeetingIdBriefRoute
@@ -134,10 +134,10 @@ export interface FileRoutesById {
   '/inbox': typeof InboxRoute
   '/people': typeof PeopleRouteWithChildren
   '/settings': typeof SettingsRoute
-  '/sign-in': typeof SignInRoute
   '/ideas/$ideaId': typeof IdeasIdeaIdRoute
   '/meetings/new': typeof MeetingsNewRoute
   '/people/$personId': typeof PeoplePersonIdRoute
+  '/sign-in/$': typeof SignInSplatRoute
   '/ideas/': typeof IdeasIndexRoute
   '/people/': typeof PeopleIndexRoute
   '/meetings/$meetingId/brief': typeof MeetingsMeetingIdBriefRoute
@@ -152,10 +152,10 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/people'
     | '/settings'
-    | '/sign-in'
     | '/ideas/$ideaId'
     | '/meetings/new'
     | '/people/$personId'
+    | '/sign-in/$'
     | '/ideas/'
     | '/people/'
     | '/meetings/$meetingId/brief'
@@ -166,10 +166,10 @@ export interface FileRouteTypes {
     | '/capture'
     | '/inbox'
     | '/settings'
-    | '/sign-in'
     | '/ideas/$ideaId'
     | '/meetings/new'
     | '/people/$personId'
+    | '/sign-in/$'
     | '/ideas'
     | '/people'
     | '/meetings/$meetingId/brief'
@@ -182,10 +182,10 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/people'
     | '/settings'
-    | '/sign-in'
     | '/ideas/$ideaId'
     | '/meetings/new'
     | '/people/$personId'
+    | '/sign-in/$'
     | '/ideas/'
     | '/people/'
     | '/meetings/$meetingId/brief'
@@ -199,8 +199,8 @@ export interface RootRouteChildren {
   InboxRoute: typeof InboxRoute
   PeopleRoute: typeof PeopleRouteWithChildren
   SettingsRoute: typeof SettingsRoute
-  SignInRoute: typeof SignInRoute
   MeetingsNewRoute: typeof MeetingsNewRoute
+  SignInSplatRoute: typeof SignInSplatRoute
   MeetingsMeetingIdBriefRoute: typeof MeetingsMeetingIdBriefRoute
   MeetingsMeetingIdDebriefRoute: typeof MeetingsMeetingIdDebriefRoute
 }
@@ -249,13 +249,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ideas/': {
       id: '/ideas/'
       path: '/'
@@ -290,6 +283,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/people/$personId'
       preLoaderRoute: typeof PeoplePersonIdRouteImport
       parentRoute: typeof PeopleRoute
+    }
+    '/sign-in/$': {
+      id: '/sign-in/$'
+      path: '/sign-in/$'
+      fullPath: '/sign-in/$'
+      preLoaderRoute: typeof SignInSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/meetings/$meetingId/brief': {
       id: '/meetings/$meetingId/brief'
@@ -340,8 +340,8 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRoute: InboxRoute,
   PeopleRoute: PeopleRouteWithChildren,
   SettingsRoute: SettingsRoute,
-  SignInRoute: SignInRoute,
   MeetingsNewRoute: MeetingsNewRoute,
+  SignInSplatRoute: SignInSplatRoute,
   MeetingsMeetingIdBriefRoute: MeetingsMeetingIdBriefRoute,
   MeetingsMeetingIdDebriefRoute: MeetingsMeetingIdDebriefRoute,
 }
@@ -350,10 +350,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

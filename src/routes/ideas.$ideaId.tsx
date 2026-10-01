@@ -2,7 +2,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import clsx from 'clsx'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Avatar, Badge, Button, Card, CardHeader, ChipGroup, Empty } from '~/components/ui'
+import { Avatar, Badge, Button, Card, CardHeader, ChipGroup, DraftTextarea, Empty } from '~/components/ui'
 import { addBelief, personById, removeBelief, updateIdea, useData } from '~/lib/store'
 import type { SignalType } from '~/lib/types'
 import { ideaStatusLabel, ideaStatuses, signalLabel } from '~/lib/vocab'
@@ -35,13 +35,13 @@ function IdeaPage() {
         <label htmlFor="idea-desc" className="sr-only">
           Description
         </label>
-        <textarea
+        <DraftTextarea
           id="idea-desc"
           rows={2}
           className="field mt-3"
           placeholder="Who is it for, and what problem does it solve?"
           value={idea.description}
-          onChange={(e) => updateIdea(idea.id, { description: e.target.value })}
+          onSave={(description) => updateIdea(idea.id, { description })}
         />
         <div className="mt-4">
           <ChipGroup
@@ -71,12 +71,12 @@ function IdeaPage() {
                 <label htmlFor={`kq-${i}`} className="sr-only">
                   Key Question {i + 1}
                 </label>
-                <textarea
+                <DraftTextarea
                   id={`kq-${i}`}
                   rows={2}
                   className="field text-sm"
                   value={q}
-                  onChange={(e) => updateIdea(idea.id, { keyQuestions: keyQs.map((x, j) => (j === i ? e.target.value : x)) })}
+                  onSave={(text) => updateIdea(idea.id, { keyQuestions: keyQs.map((x, j) => (j === i ? text : x)) })}
                 />
               </div>
             ))}

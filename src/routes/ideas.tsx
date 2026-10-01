@@ -35,13 +35,13 @@ function IdeasLayout() {
           {adding && (
             <form
               className="flex flex-col gap-2 rounded-2xl border border-rule bg-card p-3"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault()
                 if (!name.trim()) return
-                const idea = addIdea(name.trim())
+                const ideaId = await addIdea(name.trim())
                 setName('')
                 setAdding(false)
-                navigate({ to: '/ideas/$ideaId', params: { ideaId: idea.id } })
+                navigate({ to: '/ideas/$ideaId', params: { ideaId } })
               }}
             >
               <label htmlFor="new-idea" className="text-sm font-medium">

@@ -32,6 +32,8 @@ function Debrief() {
   const [notes, setNotes] = useState(meeting?.notes ?? '')
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const sigInput = useRef<HTMLTextAreaElement>(null)
   const takeawayRef = useRef<HTMLInputElement>(null)
 
@@ -72,15 +74,19 @@ function Debrief() {
     sigInput.current?.focus()
   }
 
-  function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault()
+    if (saving) return
     const tk = takeaways.map((t) => t.trim()).filter(Boolean)
     if (tk.length === 0) {
       setError('Add at least one takeaway.')
       takeawayRef.current?.focus()
       return
     }
-    saveDebrief({
+    setSaving(true)
+    setSaveError('')
+    try {
+      await saveDebrief({
       meetingId: meeting!.id,
       questions,
       takeaways: tk,
@@ -88,9 +94,14 @@ function Debrief() {
       honesty,
       nextStep: { type: stepType, description: stepDesc.trim(), owner: stepOwner, dueAt: stepDue ? fromLocalInput(`${stepDue}T09:00`) : undefined },
       notes: notes.trim(),
-    })
-    setSaved(true)
-    window.scrollTo({ top: 0 })
+      })
+      setSaved(true)
+      window.scrollTo({ top: 0 })
+    } catch {
+      setSaveError('Couldn’t save the debrief. Check your connection and try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const ideas = data.ideas
@@ -289,8 +300,13 @@ function Debrief() {
         </Section>
 
         <div className="sticky bottom-20 z-10 lg:bottom-4">
+          {saveError && (
+            <p role="alert" className="mb-2 rounded-xl bg-danger-soft px-3 py-2 text-sm font-medium text-danger">
+              {saveError}
+            </p>
+          )}
           <button type="submit" className="min-h-14 w-full rounded-2xl bg-accent text-lg font-semibold text-on-accent shadow-lg hover:bg-accent-hover">
-            Save debrief
+            {saving ? 'Saving…' : 'Save debrief'}
           </button>
         </div>
       </form>
