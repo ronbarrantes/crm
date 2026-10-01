@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import clsx from 'clsx'
+import { ConvexError } from 'convex/values'
 import { ArrowLeft, Check } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Avatar, Button, ButtonLink, Card, ChipGroup, Field, PageHeader } from '~/components/ui'
@@ -119,7 +120,6 @@ function Triage({ person, onBack, onDone }: { person: Person; onBack: () => void
     ideaIds: person.ideaIds,
     followUp: toLocalDateInput(person.followUpAt ?? inTwoDays()),
   })
-  const [mergeTarget, setMergeTarget] = useState('')
   const headingRef = useRef<HTMLHeadingElement>(null)
   const others = data.people.filter((p) => !p.needsTriage && p.id !== person.id).sort((a, b) => a.name.localeCompare(b.name))
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }))
@@ -128,21 +128,32 @@ function Triage({ person, onBack, onDone }: { person: Person; onBack: () => void
     headingRef.current?.focus()
   }, [])
 
-  function finish(e: React.FormEvent) {
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+
+  async function finish(e: React.FormEvent) {
     e.preventDefault()
-    updatePerson(person.id, {
-      name: form.name.trim() || person.name,
-      role: form.role || undefined,
-      company: form.company || undefined,
-      email: form.email || undefined,
-      phone: form.phone || undefined,
-      personalNotes: form.personalNotes || undefined,
-      stage: form.stage,
-      ideaIds: form.ideaIds,
-      followUpAt: form.followUp ? fromLocalInput(`${form.followUp}T09:00`) : null,
-      needsTriage: false,
-    })
-    onDone(`${form.name} triaged.`)
+    if (saving) return
+    setSaving(true)
+    setSaveError('')
+    try {
+      await updatePerson(person.id, {
+        name: form.name.trim() || person.name,
+        role: form.role || undefined,
+        company: form.company || undefined,
+        email: form.email || undefined,
+        phone: form.phone || undefined,
+        personalNotes: form.personalNotes || undefined,
+        stage: form.stage,
+        ideaIds: form.ideaIds,
+        followUpAt: form.followUp ? fromLocalInput(`${form.followUp}T09:00`) : null,
+        needsTriage: false,
+      })
+      onDone(`${form.name} triaged.`)
+    } catch {
+      setSaveError('Couldn’t save. Your details are still here. Check your connection and try again.')
+      setSaving(false)
+    }
   }
 
   return (
@@ -162,29 +173,7 @@ function Triage({ person, onBack, onDone }: { person: Person; onBack: () => void
 
       <details className="mb-5 rounded-xl border border-rule px-4 py-2 open:pb-4">
         <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">Already know them? Merge</summary>
-        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Field label="Existing person" htmlFor="merge" hint="Their hook line and photo get added to that person, and this capture is removed.">
-            <select id="merge" className="field" value={mergeTarget} onChange={(e) => setMergeTarget(e.target.value)}>
-              <option value="">Choose…</option>
-              {others.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                  {p.company ? ` · ${p.company}` : ''}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Button
-            disabled={!mergeTarget}
-            onClick={() => {
-              const target = others.find((p) => p.id === mergeTarget)
-              mergeInto(person.id, mergeTarget)
-              onDone(`Merged into ${target?.name}.`)
-            }}
-          >
-            Merge
-          </Button>
-        </div>
+        <MergePanel duplicate={person} form={form} others={others} onDone={onDone} />
       </details>
 
       <form onSubmit={finish} className="flex flex-col gap-4">
@@ -225,11 +214,151 @@ function Triage({ person, onBack, onDone }: { person: Person; onBack: () => void
           onChange={(v) => set('ideaIds', form.ideaIds.includes(v) ? form.ideaIds.filter((x) => x !== v) : [...form.ideaIds, v])}
         />
         <div className="flex flex-wrap gap-2 border-t border-rule pt-4">
-          <Button type="submit" variant="primary">
-            <Check aria-hidden className="size-5" /> Done
+          <Button type="submit" variant="primary" disabled={saving}>
+            <Check aria-hidden className="size-5" /> {saving ? 'Saving…' : 'Done'}
           </Button>
         </div>
+        {saveError && (
+          <p role="alert" className="text-sm font-medium text-danger">
+            {saveError}
+          </p>
+        )}
       </form>
     </Card>
+  )
+}
+
+type TriageForm = { role: string; company: string; email: string; phone: string; personalNotes: string; ideaIds: string[]; followUp: string }
+type MergeChoice = 'existing' | 'new'
+const mergeFields = [
+  { key: 'role', label: 'Role' },
+  { key: 'company', label: 'Company' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+] as const
+
+/**
+ * Merge a fresh capture into someone already known. Missing details fill in automatically;
+ * where both have a different value (or both have a photo), you choose which to keep.
+ */
+function MergePanel({ duplicate, form, others, onDone }: { duplicate: Person; form: TriageForm; others: Person[]; onDone: (msg: string) => void }) {
+  const [targetId, setTargetId] = useState('')
+  const [choices, setChoices] = useState<Record<string, MergeChoice>>({})
+  const [merging, setMerging] = useState(false)
+  const [error, setError] = useState('')
+  const target = others.find((p) => p.id === targetId)
+
+  const conflicts = target
+    ? mergeFields.filter(({ key }) => {
+        const existing = target[key]?.trim()
+        const fresh = form[key].trim()
+        return existing && fresh && existing !== fresh
+      })
+    : []
+  const photoConflict = !!(target?.photoUrl && duplicate.photoUrl)
+  const unresolved = conflicts.some(({ key }) => !choices[key]) || (photoConflict && !choices.photo)
+
+  async function merge() {
+    if (!target || unresolved || merging) return
+    setMerging(true)
+    setError('')
+    try {
+      await mergeInto(duplicate.id, target.id, {
+        metOn: new Date(duplicate.metAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+        edits: {
+          role: form.role || undefined,
+          company: form.company || undefined,
+          email: form.email || undefined,
+          phone: form.phone || undefined,
+          personalNotes: form.personalNotes || undefined,
+          ideaIds: form.ideaIds,
+          followUpAt: form.followUp ? fromLocalInput(`${form.followUp}T09:00`) : undefined,
+        },
+        choices,
+      })
+      onDone(`Merged into ${target.name}.`)
+    } catch (e) {
+      setError(e instanceof ConvexError ? String(e.data) : 'Couldn’t merge. Nothing was changed. Check your connection and try again.')
+      setMerging(false)
+    }
+  }
+
+  return (
+    <div className="mt-2 flex flex-col gap-4">
+      <Field
+        label="Existing person"
+        htmlFor="merge"
+        hint="Missing details fill in, notes from both are kept, and this encounter is added to their notes. This capture is then removed."
+      >
+        <select
+          id="merge"
+          className="field"
+          value={targetId}
+          onChange={(e) => {
+            setTargetId(e.target.value)
+            setChoices({})
+            setError('')
+          }}
+        >
+          <option value="">Choose…</option>
+          {others.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+              {p.company ? ` · ${p.company}` : ''}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      {target && (conflicts.length > 0 || photoConflict) && (
+        <div className="flex flex-col gap-4 rounded-xl bg-paper p-3">
+          <p className="text-sm font-medium">Both have different values. Choose what to keep:</p>
+          {conflicts.map(({ key, label }) => (
+            <ChipGroup<MergeChoice>
+              key={key}
+              legend={label}
+              options={[
+                { value: 'existing', label: target[key]! },
+                { value: 'new', label: form[key].trim() },
+              ]}
+              value={choices[key] ?? ('' as MergeChoice)}
+              onChange={(v) => setChoices((c) => ({ ...c, [key]: v }))}
+            />
+          ))}
+          {photoConflict && (
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium">Photo</legend>
+              <div className="flex gap-3">
+                {(['existing', 'new'] as const).map((which) => (
+                  <label
+                    key={which}
+                    className={clsx(
+                      'flex cursor-pointer flex-col items-center gap-1 rounded-xl border p-2 text-xs has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--focus)]',
+                      choices.photo === which ? 'border-accent bg-soft text-on-soft' : 'border-rule-strong',
+                    )}
+                  >
+                    <input type="radio" name="merge-photo" className="sr-only" checked={choices.photo === which} onChange={() => setChoices((c) => ({ ...c, photo: which }))} />
+                    <img src={which === 'existing' ? target.photoUrl : duplicate.photoUrl} alt="" className="size-20 rounded-lg object-cover" />
+                    {which === 'existing' ? `Keep ${target.name}’s photo` : 'Use the new photo'}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button disabled={!target || unresolved || merging} onClick={merge}>
+          {merging ? 'Merging…' : target ? `Merge into ${target.name}` : 'Merge'}
+        </Button>
+        {target && unresolved && <span className="text-sm text-ink-2">Choose above to continue.</span>}
+      </div>
+      {error && (
+        <p role="alert" className="text-sm font-medium text-danger">
+          {error}
+        </p>
+      )}
+    </div>
   )
 }

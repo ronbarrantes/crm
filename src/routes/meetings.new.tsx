@@ -44,15 +44,18 @@ function PlanMeeting() {
   }
 
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
     if (!personId || saving) return
     setSaving(true)
+    setSaveError('')
     try {
       const meetingId = await planMeeting({ personId, at: fromLocalInput(at), type, intent: intent.trim(), questions })
       navigate({ to: '/meetings/$meetingId/brief', params: { meetingId } })
     } catch {
+      setSaveError('Couldn’t save the meeting. Everything you entered is still here. Check your connection and try again.')
       setSaving(false)
     }
   }
@@ -137,9 +140,14 @@ function PlanMeeting() {
 
           <div className="flex gap-2 border-t border-rule pt-4">
             <Button type="submit" variant="primary" disabled={!personId || saving}>
-              Save and see Brief
+              {saving ? 'Saving…' : 'Save and see Brief'}
             </Button>
           </div>
+          {saveError && (
+            <p role="alert" className="text-sm font-medium text-danger">
+              {saveError}
+            </p>
+          )}
         </form>
       </Card>
     </div>

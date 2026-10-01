@@ -2,11 +2,22 @@
 
 For review on October 1, 2026. Reviewed `main` at `04023f67782b223c761952e4c82e0a9847208ca9`.
 
-This is a bounded source review of the capture, triage, meeting, idea, and data flows. The failure scenarios below follow from the code; they have not been reproduced in a running browser. CodeRabbit was unavailable because its CLI was signed out. This PR only records proposed work.
+This is a bounded source review of the capture, triage, meeting, idea, and data flows. The failure scenarios below follow from the code; they have not been reproduced in a running browser. CodeRabbit was unavailable because its CLI was signed out.
+
+## Status: all six resolved (October 1, 2026)
+
+| # | Fix | Verified with |
+|---|-----|---------------|
+| 1 | Capture keeps the draft read-only until the server confirms; it clears only on success. | Browser: a photo upload delayed 2.5s and then aborted kept the name, hook line and photo, and showed no success message; retrying saved and cleared the draft. |
+| 2 | `saveDebrief` rejects meetings that are not `planned`; a saved debrief reopens as a read-only summary. | Convex: a repeated call was rejected; of two concurrent calls, one succeeded and one was rejected; each meeting kept 1 signal and 1 next step. Browser: reopening the URL shows the summary. |
+| 3 | `merge` fills missing contact fields, keeps notes and flags from both, records the encounter ("Met again at {event} on {local date}: {hook line}"), includes unsaved triage edits, and requires a choice for conflicting values and photos. | Convex: refused without choices (email, then photo); with choices kept the edits, flags and notes, reparented meetings, and deleted only the discarded photo. Browser: Merge stays disabled until the conflict is chosen. |
+| 4 | Triage, merge, belief and meeting writes await the server, disable while pending, keep input on failure, and show an error. | Typecheck plus the browser runs above; failures surface through the same handlers. |
+| 5 | Description and Key Questions are one local draft with an explicit Save and Discard; the draft follows remote changes only when nothing is unsaved. | Browser: edited two questions, saved, reloaded; both changes persisted. |
+| 6 | The server drops an expired event on capture and reports `eventDropped`; the client re-evaluates event mode at expiry and on resume, against the current time. | Convex: an expired event id was not attached and a running one was. Browser with a fake clock: the banner switched off at midnight. Ending an event switches it off immediately. |
 
 ## High priority
 
-- [ ] **1. Keep a failed capture from overwriting the next person's draft.**
+- [x] **1. Keep a failed capture from overwriting the next person's draft.**
 
   Evidence: [`src/routes/capture.tsx:33`](src/routes/capture.tsx#L33) clears the form before `capture` finishes. Its rejection handler unconditionally restores the earlier name, hook line, and photo. There is no limit on concurrent saves.
 
@@ -16,7 +27,7 @@ This is a bounded source review of the capture, triage, meeting, idea, and data 
 
   Done when: a delayed failed save cannot change a newer draft; the failed person's text and photo remain available for retry; success messages correspond to completed saves. Verify with one controlled delayed upload failure.
 
-- [ ] **2. Make debrief submission safe to repeat.**
+- [x] **2. Make debrief submission safe to repeat.**
 
   Evidence: [`convex/meetings.ts:52`](convex/meetings.ts#L52) accepts an already debriefed meeting, patches it, and inserts new signals and a new next step on every call. [`src/routes/meetings.$meetingId.debrief.tsx:21`](src/routes/meetings.$meetingId.debrief.tsx#L21) reloads meeting fields but initializes signals and next-step fields as a fresh form. A saved debrief URL remains accessible.
 
@@ -26,7 +37,7 @@ This is a bounded source review of the capture, triage, meeting, idea, and data 
 
   Done when: two submissions for one meeting leave one debrief's related records; reopening shows the saved state; a repeated request cannot overwrite the original. Verify the mutation with repeated and concurrent calls.
 
-- [ ] **3. Preserve contact information and meeting context during merge.**
+- [x] **3. Preserve contact information and meeting context during merge.**
 
   Evidence: [`convex/people.ts:69`](convex/people.ts#L69) preserves the duplicate's hook line, one photo, and idea links, and reparents its related records. It then deletes the duplicate without preserving its personal notes, contact fields, flags, follow-up, or event context. If both people have photos, the duplicate's photo is deleted. The triage form's unsaved edits are also absent from the merge request at [`src/routes/inbox.tsx:179`](src/routes/inbox.tsx#L179).
 
@@ -36,7 +47,7 @@ This is a bounded source review of the capture, triage, meeting, idea, and data 
 
   Done when: merging complementary records preserves their useful information and all related meetings, signals, and next steps. Conflicting values and photos require an explicit choice. Verify a merge with complementary fields, conflicting photos, and unsaved triage edits.
 
-- [ ] **4. Confirm mutations before announcing success or discarding input.**
+- [x] **4. Confirm mutations before announcing success or discarding input.**
 
   Evidence: [`src/routes/inbox.tsx:131`](src/routes/inbox.tsx#L131) calls `updatePerson` and immediately announces completion and selects the next person. Its merge handler does the same. [`src/routes/ideas.$ideaId.tsx:109`](src/routes/ideas.$ideaId.tsx#L109) clears a new belief before `addBelief` resolves. [`src/routes/meetings.new.tsx:49`](src/routes/meetings.new.tsx#L49) awaits the save but suppresses the error.
 
@@ -46,7 +57,7 @@ This is a bounded source review of the capture, triage, meeting, idea, and data 
 
   Done when: rejected triage, merge, belief, and meeting writes keep their input and show an error; confirmed writes advance once. Verify these handlers with rejected promises.
 
-- [ ] **5. Protect idea autosaves from lost drafts and stale array writes.**
+- [x] **5. Protect idea autosaves from lost drafts and stale array writes.**
 
   Evidence: [`src/components/ui.tsx:152`](src/components/ui.tsx#L152) types `onSave` as returning `void` and does not track its promise. On blur, its effect can reset the draft to the old `value` before the server confirms the edit. [`src/routes/ideas.$ideaId.tsx:79`](src/routes/ideas.$ideaId.tsx#L79) saves the entire question array from the last server snapshot for each individual question edit.
 
@@ -58,7 +69,7 @@ This is a bounded source review of the capture, triage, meeting, idea, and data 
 
 ## Medium priority
 
-- [ ] **6. Enforce event expiry when a capture is saved.**
+- [x] **6. Enforce event expiry when a capture is saved.**
 
   Evidence: [`src/lib/store.ts:14`](src/lib/store.ts#L14) computes the current event using the clock during render, with no expiry timer or resume handler. [`convex/people.ts:16`](convex/people.ts#L16) checks event ownership but not `endsAt`.
 

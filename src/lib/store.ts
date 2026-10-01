@@ -1,6 +1,8 @@
 // Client data layer: one live Convex query for everything the user owns, plus thin wrappers
 // around the Convex mutations so screens can call plain async functions.
 import { useQuery } from 'convex/react'
+import type { FunctionArgs } from 'convex/server'
+import { useEffect, useState } from 'react'
 import { api } from '../../convex/_generated/api'
 import type { Id as ConvexId, TableNames } from '../../convex/_generated/dataModel'
 import { convex } from './convex'
@@ -11,16 +13,41 @@ import type { Data, EventInfo, Id, Idea, Meeting, MeetingQuestion, NextStep, Nex
 const EMPTY: Data = { activeEvent: null, events: [], people: [], meetings: [], signals: [], ideas: [], beliefs: [], nextSteps: [] }
 
 /** Latest event whose end time hasn't passed yet. */
-function currentEvent(events: EventInfo[]): EventInfo | null {
-  const now = new Date()
-  return [...events].filter((e) => new Date(e.endsAt) > now).sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
+function currentEvent(events: EventInfo[], now: number): EventInfo | null {
+  return [...events].filter((e) => new Date(e.endsAt).getTime() > now).sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
+}
+
+/**
+ * The current time, refreshed when the next event ends and whenever the app comes back to the
+ * foreground (phones pause timers in the background), so event mode switches off on time.
+ */
+function useEventClock(events: EventInfo[] | undefined) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const tick = () => setNow(Date.now())
+    const nextEnd = (events ?? []).map((e) => new Date(e.endsAt).getTime()).filter((t) => t > Date.now()).sort((a, b) => a - b)[0]
+    // setTimeout caps out around 24.8 days; events end the same night, so this is plenty.
+    const timer = nextEnd ? setTimeout(tick, Math.min(nextEnd - Date.now() + 500, 2 ** 31 - 1)) : undefined
+    const onVisible = () => document.visibilityState === 'visible' && tick()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', tick)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', tick)
+    }
+  }, [events])
+  return now
 }
 
 /** Live data, or undefined while the first load is in flight. */
 export function useDataOrLoading(): Data | undefined {
   const result = useQuery(api.data.all)
+  // The clock only triggers re-renders at expiry/resume; always compare against the real current time,
+  // so an event ended a moment ago (its endsAt is "now") switches off immediately.
+  const tick = useEventClock(result?.events)
   if (!result) return undefined
-  return { ...(result as Omit<Data, 'activeEvent'>), activeEvent: currentEvent(result.events) }
+  return { ...(result as Omit<Data, 'activeEvent'>), activeEvent: currentEvent(result.events, Math.max(tick, Date.now())) }
 }
 
 /** Live data. Screens render inside AppShell, which waits for the first load. */
@@ -113,8 +140,18 @@ export async function updatePerson(id: Id, patch: PersonPatch) {
 }
 
 /** Fold a fresh capture into someone already known, then delete the duplicate. */
-export async function mergeInto(duplicateId: Id, targetId: Id) {
-  return convex.mutation(api.people.merge, { duplicateId: as<'people'>(duplicateId), targetId: as<'people'>(targetId) })
+export async function mergeInto(
+  duplicateId: Id,
+  targetId: Id,
+  { metOn, edits, choices }: { metOn: string; edits: Omit<FunctionArgs<typeof api.people.merge>['edits'], 'ideaIds'> & { ideaIds?: Id[] }; choices: FunctionArgs<typeof api.people.merge>['choices'] },
+) {
+  return convex.mutation(api.people.merge, {
+    duplicateId: as<'people'>(duplicateId),
+    targetId: as<'people'>(targetId),
+    metOn,
+    edits: { ...edits, ideaIds: edits.ideaIds?.map((i) => as<'ideas'>(i)) },
+    choices,
+  })
 }
 
 export async function planMeeting(input: Pick<Meeting, 'personId' | 'at' | 'type' | 'intent'> & { questions: string[] }) {
