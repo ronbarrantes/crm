@@ -2,7 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import clsx from 'clsx'
 import { Home, Inbox, Lightbulb, Plus, Settings, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { activeEvent, inbox, useData } from '~/lib/store'
+import { activeEvent, inbox, useData, useDataOrLoading } from '~/lib/store'
 
 const nav = [
   { to: '/', label: 'Today', icon: Home, exact: true },
@@ -19,6 +19,7 @@ function useIsActive() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const data = useData()
+  const loaded = useDataOrLoading() !== undefined
   const isActive = useIsActive()
   const inboxCount = inbox(data).length
   const event = activeEvent(data)
@@ -107,7 +108,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <main id="main" tabIndex={-1} className="min-w-0 px-4 pt-5 pb-28 outline-none sm:px-6 lg:px-10 lg:pt-8 lg:pb-12">
-        {children}
+        {loaded ? (
+          children
+        ) : (
+          <p role="status" className="py-16 text-center text-ink-2">
+            Loading your notes…
+          </p>
+        )}
       </main>
 
       {/* Mobile tab bar */}

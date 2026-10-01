@@ -139,7 +139,7 @@ function Triage({ person, onBack, onDone }: { person: Person; onBack: () => void
       personalNotes: form.personalNotes || undefined,
       stage: form.stage,
       ideaIds: form.ideaIds,
-      followUpAt: form.followUp ? fromLocalInput(`${form.followUp}T09:00`) : undefined,
+      followUpAt: form.followUp ? fromLocalInput(`${form.followUp}T09:00`) : null,
       needsTriage: false,
     })
     onDone(`${form.name} triaged.`)

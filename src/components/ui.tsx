@@ -1,5 +1,6 @@
 import { createLink } from '@tanstack/react-router'
 import clsx from 'clsx'
+import { useEffect, useState } from 'react'
 import type { ComponentProps, ReactNode } from 'react'
 import { initials } from '~/lib/format'
 
@@ -144,5 +145,26 @@ export function ChipGroup<T extends string>({
         ))}
       </div>
     </fieldset>
+  )
+}
+
+/** A textarea that edits a local draft and saves when it loses focus, so typing never waits on the network. */
+export function DraftTextarea({ value, onSave, ...props }: Omit<ComponentProps<'textarea'>, 'value' | 'onChange'> & { value: string; onSave: (value: string) => void }) {
+  const [draft, setDraft] = useState(value)
+  const [focused, setFocused] = useState(false)
+  useEffect(() => {
+    if (!focused) setDraft(value)
+  }, [value, focused])
+  return (
+    <textarea
+      {...props}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => {
+        setFocused(false)
+        if (draft !== value) onSave(draft)
+      }}
+    />
   )
 }

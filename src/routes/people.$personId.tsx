@@ -54,9 +54,9 @@ function PersonPage() {
               <CalendarPlus aria-hidden className="size-5" /> Plan meeting
             </ButtonLink>
             <Button
-              onClick={() => {
-                const m = startUnplannedMeeting(person.id)
-                navigate({ to: '/meetings/$meetingId/debrief', params: { meetingId: m.id } })
+              onClick={async () => {
+                const meetingId = await startUnplannedMeeting(person.id)
+                navigate({ to: '/meetings/$meetingId/debrief', params: { meetingId } })
               }}
             >
               <NotebookPen aria-hidden className="size-5" /> Debrief a chat

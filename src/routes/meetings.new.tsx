@@ -43,11 +43,18 @@ function PlanMeeting() {
     setQuestions(padTo3(data.ideas.find((i) => i.id === id)?.keyQuestions ?? []))
   }
 
-  function save(e: React.FormEvent) {
+  const [saving, setSaving] = useState(false)
+
+  async function save(e: React.FormEvent) {
     e.preventDefault()
-    if (!personId) return
-    const m = planMeeting({ personId, at: fromLocalInput(at), type, intent: intent.trim(), questions })
-    navigate({ to: '/meetings/$meetingId/brief', params: { meetingId: m.id } })
+    if (!personId || saving) return
+    setSaving(true)
+    try {
+      const meetingId = await planMeeting({ personId, at: fromLocalInput(at), type, intent: intent.trim(), questions })
+      navigate({ to: '/meetings/$meetingId/brief', params: { meetingId } })
+    } catch {
+      setSaving(false)
+    }
   }
 
   return (
@@ -129,7 +136,7 @@ function PlanMeeting() {
           </fieldset>
 
           <div className="flex gap-2 border-t border-rule pt-4">
-            <Button type="submit" variant="primary" disabled={!personId}>
+            <Button type="submit" variant="primary" disabled={!personId || saving}>
               Save and see Brief
             </Button>
           </div>

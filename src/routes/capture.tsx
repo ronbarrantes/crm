@@ -19,7 +19,7 @@ function Capture() {
   const event = activeEvent(data);
   const [name, setName] = useState("");
   const [hook, setHook] = useState("");
-  const [photo, setPhoto] = useState<string>();
+  const [photo, setPhoto] = useState<{ file: File; preview: string }>();
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
@@ -40,17 +40,23 @@ function Capture() {
       );
       return;
     }
-    const person = capture({
-      name: name.trim(),
-      hookLine: hook.trim(),
-      photoUrl: photo,
-    });
+    // Clear right away so the next person can be captured while this one saves.
+    const draft = { name: name.trim(), hookLine: hook.trim(), photo };
     setName("");
     setHook("");
     setPhoto(undefined);
     setError("");
-    setStatus(`Saved ${person.name}. Ready for the next person.`);
+    setStatus(`Saving ${draft.name}…`);
     nameRef.current?.focus();
+    capture({ ...draft, photo: draft.photo?.file, eventId: event?.id })
+      .then(() => setStatus(`Saved ${draft.name}. Ready for the next person.`))
+      .catch(() => {
+        setName(draft.name);
+        setHook(draft.hookLine);
+        setPhoto(draft.photo);
+        setStatus("");
+        setError(`Couldn’t save ${draft.name}. Check your connection and try again.`);
+      });
   }
 
   return (
@@ -104,14 +110,14 @@ function Capture() {
             className="sr-only"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) setPhoto(URL.createObjectURL(file));
+              if (file) setPhoto({ file, preview: URL.createObjectURL(file) });
               e.target.value = "";
             }}
           />
           {photo ? (
             <div className="flex items-center gap-3">
               <img
-                src={photo}
+                src={photo.preview}
                 alt="Photo to attach"
                 className="size-16 rounded-xl object-cover"
               />
@@ -205,7 +211,7 @@ function EventBanner() {
           <span className="font-semibold">{event.name}</span>
           {event.place && <span> · {event.place}</span>}
         </p>
-        <Button variant="ghost" onClick={endEvent} className="text-on-soft">
+        <Button variant="ghost" onClick={() => endEvent(event.id)} className="text-on-soft">
           End
         </Button>
       </div>

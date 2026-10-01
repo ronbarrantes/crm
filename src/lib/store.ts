@@ -1,37 +1,37 @@
-// In-memory stand-in for Convex while the screens are built. Refreshing resets it.
-import { useSyncExternalStore } from 'react'
-import { createSampleData } from './sample-data'
+// Client data layer: one live Convex query for everything the user owns, plus thin wrappers
+// around the Convex mutations so screens can call plain async functions.
+import { useQuery } from 'convex/react'
+import { api } from '../../convex/_generated/api'
+import type { Id as ConvexId, TableNames } from '../../convex/_generated/dataModel'
+import { convex } from './convex'
+import { compressImage } from './image'
 import { progressRank } from './vocab'
-import type { Data, EventInfo, Id, Meeting, MeetingQuestion, NextStep, NextStepType, Person, Signal } from './types'
+import type { Data, EventInfo, Id, Idea, Meeting, MeetingQuestion, NextStep, NextStepType, Person, Signal } from './types'
 
-let data: Data = createSampleData()
-const listeners = new Set<() => void>()
-let counter = 0
+const EMPTY: Data = { activeEvent: null, events: [], people: [], meetings: [], signals: [], ideas: [], beliefs: [], nextSteps: [] }
 
-function newId(prefix: string) {
-  counter += 1
-  return `${prefix}-${Date.now().toString(36)}-${counter}`
+/** Latest event whose end time hasn't passed yet. */
+function currentEvent(events: EventInfo[]): EventInfo | null {
+  const now = new Date()
+  return [...events].filter((e) => new Date(e.endsAt) > now).sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
 }
 
-function set(next: Data) {
-  data = next
-  listeners.forEach((l) => l())
+/** Live data, or undefined while the first load is in flight. */
+export function useDataOrLoading(): Data | undefined {
+  const result = useQuery(api.data.all)
+  if (!result) return undefined
+  return { ...(result as Omit<Data, 'activeEvent'>), activeEvent: currentEvent(result.events) }
 }
 
-function subscribe(listener: () => void) {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
-
+/** Live data. Screens render inside AppShell, which waits for the first load. */
 export function useData(): Data {
-  return useSyncExternalStore(subscribe, () => data, () => data)
+  return useDataOrLoading() ?? EMPTY
 }
 
 // ---------- selectors ----------
 
 export function activeEvent(d: Data): EventInfo | null {
-  if (!d.activeEvent) return null
-  return new Date(d.activeEvent.endsAt) > new Date() ? d.activeEvent : null
+  return d.activeEvent
 }
 
 export function personById(d: Data, id: Id) {
@@ -67,85 +67,62 @@ export function inbox(d: Data) {
 
 // ---------- actions ----------
 
+// Screen code uses plain string ids; Convex checks them against the right table on the server.
+const as = <T extends TableNames>(id: Id) => id as ConvexId<T>
+
 function midnightTonight() {
   const d = new Date()
   d.setHours(24, 0, 0, 0)
   return d.toISOString()
 }
 
-export function startEvent(name: string, place: string) {
-  const ev: EventInfo = { id: newId('ev'), name, place, date: new Date().toISOString(), endsAt: midnightTonight() }
-  set({ ...data, activeEvent: ev, events: [...data.events, ev] })
+export async function startEvent(name: string, place: string) {
+  return convex.mutation(api.events.start, { name, place, endsAt: midnightTonight() })
 }
 
-export function endEvent() {
-  if (!data.activeEvent) return
-  const now = new Date().toISOString()
-  set({
-    ...data,
-    activeEvent: null,
-    events: data.events.map((e) => (e.id === data.activeEvent?.id ? { ...e, endsAt: now } : e)),
+export async function endEvent(id: Id) {
+  return convex.mutation(api.events.end, { id: as<'events'>(id) })
+}
+
+export async function uploadPhoto(file: File): Promise<ConvexId<'_storage'>> {
+  const blob = await compressImage(file)
+  const url = await convex.mutation(api.people.generatePhotoUploadUrl, {})
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': blob.type }, body: blob })
+  if (!res.ok) throw new Error('Photo upload failed')
+  const { storageId } = (await res.json()) as { storageId: ConvexId<'_storage'> }
+  return storageId
+}
+
+export async function capture(input: { name: string; hookLine: string; photo?: File; eventId?: Id }) {
+  const photoId = input.photo ? await uploadPhoto(input.photo) : undefined
+  return convex.mutation(api.people.capture, {
+    name: input.name,
+    hookLine: input.hookLine,
+    photoId,
+    eventId: input.eventId ? as<'events'>(input.eventId) : undefined,
   })
 }
 
-export function capture(input: { name: string; hookLine: string; photoUrl?: string }) {
-  const ev = activeEvent(data)
-  const person: Person = {
-    id: newId('p'),
-    name: input.name,
-    hookLine: input.hookLine,
-    photoUrl: input.photoUrl,
-    stage: 'stranger',
-    flags: [],
-    ideaIds: [],
-    eventId: ev?.id,
-    metAt: new Date().toISOString(),
-    needsTriage: true,
-    source: 'capture',
-  }
-  set({ ...data, people: [person, ...data.people] })
-  return person
+type PersonPatch = Partial<Pick<Person, 'name' | 'role' | 'company' | 'email' | 'phone' | 'personalNotes' | 'stage' | 'flags' | 'ideaIds' | 'needsTriage'>> & {
+  /** null clears the follow-up */
+  followUpAt?: string | null
 }
 
-export function updatePerson(id: Id, patch: Partial<Person>) {
-  set({ ...data, people: data.people.map((p) => (p.id === id ? { ...p, ...patch } : p)) })
+export async function updatePerson(id: Id, patch: PersonPatch) {
+  return convex.mutation(api.people.update, { id: as<'people'>(id), patch: { ...patch, ideaIds: patch.ideaIds?.map((i) => as<'ideas'>(i)) } })
 }
 
 /** Fold a fresh capture into someone already known, then delete the duplicate. */
-export function mergeInto(duplicateId: Id, targetId: Id) {
-  const dup = personById(data, duplicateId)
-  const target = personById(data, targetId)
-  if (!dup || !target) return
-  const notes = [target.personalNotes, `Also noted: ${dup.hookLine}`].filter(Boolean).join('\n')
-  set({
-    ...data,
-    people: data.people
-      .filter((p) => p.id !== duplicateId)
-      .map((p) =>
-        p.id === targetId ? { ...p, personalNotes: notes, photoUrl: p.photoUrl ?? dup.photoUrl } : p,
-      ),
-  })
+export async function mergeInto(duplicateId: Id, targetId: Id) {
+  return convex.mutation(api.people.merge, { duplicateId: as<'people'>(duplicateId), targetId: as<'people'>(targetId) })
 }
 
-export function planMeeting(input: Pick<Meeting, 'personId' | 'at' | 'type' | 'intent'> & { questions: string[] }) {
-  const meeting: Meeting = {
-    id: newId('m'),
-    personId: input.personId,
-    status: 'planned',
-    at: input.at,
-    type: input.type,
-    intent: input.intent,
-    questions: input.questions.filter((q) => q.trim()).map((text) => ({ text, progress: 'not-asked', note: '' })),
-    takeaways: [],
-    honesty: { gotFacts: null, pitchedTooEarly: null, theyPitchedMe: null },
-    notes: '',
-  }
-  set({ ...data, meetings: [...data.meetings, meeting] })
-  return meeting
+export async function planMeeting(input: Pick<Meeting, 'personId' | 'at' | 'type' | 'intent'> & { questions: string[] }) {
+  return convex.mutation(api.meetings.plan, { ...input, personId: as<'people'>(input.personId) })
 }
 
 /** Debrief of an unplanned conversation: creates the meeting on the spot. */
-export function startUnplannedMeeting(personId: Id) {
+export async function startUnplannedMeeting(personId: Id) {
   return planMeeting({ personId, at: new Date().toISOString(), type: 'coffee', intent: '', questions: [] })
 }
 
@@ -159,53 +136,42 @@ export interface DebriefInput {
   notes: string
 }
 
-export function saveDebrief(input: DebriefInput) {
-  const meeting = data.meetings.find((m) => m.id === input.meetingId)
-  if (!meeting) return
-  const personId = meeting.personId
-  const person = personById(data, personId)
-  const flags =
-    input.honesty.theyPitchedMe && person && !person.flags.includes('pitching-me')
-      ? [...person.flags, 'pitching-me' as const]
-      : person?.flags
-  set({
-    ...data,
-    meetings: data.meetings.map((m) =>
-      m.id === meeting.id
-        ? { ...m, status: 'debriefed', questions: input.questions, takeaways: input.takeaways, honesty: input.honesty, notes: input.notes }
-        : m,
-    ),
-    signals: [
-      ...data.signals,
-      ...input.signals.map((s) => ({ ...s, id: newId('s'), meetingId: meeting.id, personId })),
-    ],
-    nextSteps: [...data.nextSteps, { ...input.nextStep, id: newId('n'), meetingId: meeting.id, personId, done: input.nextStep.type === 'none' }],
-    people: data.people.map((p) => (p.id === personId && flags ? { ...p, flags } : p)),
+export async function saveDebrief(input: DebriefInput) {
+  return convex.mutation(api.meetings.saveDebrief, {
+    ...input,
+    meetingId: as<'meetings'>(input.meetingId),
+    signals: input.signals.map((s) => ({ ...s, ideaIds: s.ideaIds.map((i) => as<'ideas'>(i)) })),
   })
 }
 
-export function toggleNextStep(id: Id) {
-  set({ ...data, nextSteps: data.nextSteps.map((n) => (n.id === id ? { ...n, done: !n.done } : n)) })
+export async function toggleNextStep(id: Id) {
+  return convex.mutation(api.meetings.toggleNextStep, { id: as<'nextSteps'>(id) })
 }
 
-export function clearFollowUp(personId: Id) {
-  updatePerson(personId, { followUpAt: undefined })
+export async function clearFollowUp(personId: Id) {
+  return updatePerson(personId, { followUpAt: null })
 }
 
-export function updateIdea(id: Id, patch: Partial<Data['ideas'][number]>) {
-  set({ ...data, ideas: data.ideas.map((i) => (i.id === id ? { ...i, ...patch } : i)) })
+export async function updateIdea(id: Id, patch: Partial<Pick<Idea, 'name' | 'description' | 'status' | 'keyQuestions'>>) {
+  return convex.mutation(api.ideas.update, { id: as<'ideas'>(id), patch })
 }
 
-export function addIdea(name: string) {
-  const idea = { id: newId('i'), name, description: '', status: 'exploring' as const, keyQuestions: [] }
-  set({ ...data, ideas: [...data.ideas, idea] })
-  return idea
+export async function addIdea(name: string) {
+  return convex.mutation(api.ideas.add, { name })
 }
 
-export function addBelief(ideaId: Id, statement: string) {
-  set({ ...data, beliefs: [...data.beliefs, { id: newId('b'), ideaId, statement }] })
+export async function addBelief(ideaId: Id, statement: string) {
+  return convex.mutation(api.ideas.addBelief, { ideaId: as<'ideas'>(ideaId), statement })
 }
 
-export function removeBelief(id: Id) {
-  set({ ...data, beliefs: data.beliefs.filter((b) => b.id !== id) })
+export async function removeBelief(id: Id) {
+  return convex.mutation(api.ideas.removeBelief, { id: as<'beliefs'>(id) })
+}
+
+export async function loadSampleData() {
+  return convex.mutation(api.sample.load, {})
+}
+
+export async function clearMyData() {
+  return convex.mutation(api.sample.clearMine, {})
 }

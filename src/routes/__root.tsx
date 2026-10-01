@@ -1,12 +1,27 @@
-import { HeadContent, Link, Outlet, Scripts, createRootRoute, useRouterState } from '@tanstack/react-router'
+import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start'
+import { HeadContent, Link, Outlet, Scripts, createRootRoute, redirect, useRouterState } from '@tanstack/react-router'
+import { ConvexProviderWithClerk } from 'convex/react-clerk'
 import type { ReactNode } from 'react'
 import { AppShell } from '~/components/app-shell'
+import { fetchAuth } from '~/lib/auth'
+import { convex } from '~/lib/convex'
+import { useIsDark } from '~/lib/use-is-dark'
 import appCss from '~/styles.css?url'
+
+const isSignIn = (path: string) => path === '/sign-in' || path.startsWith('/sign-in/')
 
 // Applies the saved theme (auto / light / dark) before paint to avoid a flash.
 const THEME_SCRIPT = `(function(){try{var m=localStorage.getItem('theme');if(m!=='light'&&m!=='dark')m='auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',d);r.style.colorScheme=d?'dark':'light'}catch(e){}})()`
 
 export const Route = createRootRoute({
+  // Everything except the sign-in page needs a signed-in user.
+  beforeLoad: async ({ location }) => {
+    const { userId } = await fetchAuth()
+    if (!userId && !isSignIn(location.pathname)) {
+      throw redirect({ to: '/sign-in/$', params: { _splat: '' }, search: { redirect_url: location.href } as never })
+    }
+    return { userId }
+  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -48,7 +63,11 @@ function RootDocument({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body className="antialiased [overflow-wrap:anywhere]">
-        {children}
+        <ClerkProvider signInUrl="/sign-in" appearance={useClerkAppearance()}>
+          <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+            {children}
+          </ConvexProviderWithClerk>
+        </ClerkProvider>
         <Scripts />
       </body>
     </html>
@@ -56,11 +75,37 @@ function RootDocument({ children }: { children: ReactNode }) {
 }
 
 function RootLayout() {
-  const bare = useRouterState({ select: (s) => s.location.pathname === '/sign-in' })
+  const bare = useRouterState({ select: (s) => isSignIn(s.location.pathname) })
   if (bare) return <Outlet />
   return (
     <AppShell>
       <Outlet />
     </AppShell>
   )
+}
+
+// Clerk derives hover and border shades itself, so it needs real colors, not CSS variables.
+const clerkColors = {
+  light: { primary: '#5130d8', onPrimary: '#ffffff', ink: '#111015', ink2: '#5a5764', card: '#ffffff', rule: '#cfcad9', danger: '#b4232f' },
+  dark: { primary: '#b6a2ff', onPrimary: '#0e0d13', ink: '#f2eff8', ink2: '#aaa4b9', card: '#16141d', rule: '#3a3744', danger: '#ff8a93' },
+}
+
+function useClerkAppearance() {
+  const c = clerkColors[useIsDark() ? 'dark' : 'light']
+  return {
+    variables: {
+      colorPrimary: c.primary,
+      colorPrimaryForeground: c.onPrimary,
+      colorForeground: c.ink,
+      colorMutedForeground: c.ink2,
+      colorBackground: c.card,
+      colorInput: c.card,
+      colorInputForeground: c.ink,
+      colorBorder: c.rule,
+      colorDanger: c.danger,
+      fontFamily: "'Mona Sans', ui-sans-serif, system-ui, sans-serif",
+      borderRadius: '10px',
+    },
+    elements: { footerAction: { display: 'none' } },
+  }
 }
