@@ -125,7 +125,7 @@ function PeopleLayout() {
                   to="/people/$personId"
                   params={{ personId: p.id }}
                   className={clsx(
-                    'flex items-start gap-3 rounded-2xl border px-4 py-3',
+                    'flex items-start gap-3 border px-4 py-3',
                     p.id === personId ? 'border-accent bg-soft' : 'border-rule bg-card hover:bg-soft/60',
                   )}
                   aria-current={p.id === personId ? 'page' : undefined}

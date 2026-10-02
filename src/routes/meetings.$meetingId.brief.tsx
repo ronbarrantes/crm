@@ -46,7 +46,7 @@ function Brief() {
           <p className="mt-1 text-lg">{meeting.intent}</p>
         </Card>
       ) : (
-        <div role="note" className="flex gap-3 rounded-2xl bg-warn-soft p-4 text-warn">
+        <div role="note" className="flex gap-3 bg-warn-soft p-4 text-warn">
           <AlertTriangle aria-hidden className="mt-0.5 size-5 shrink-0" />
           <p>
             <span className="font-semibold">No stated intent.</span> Consider asking what they have in mind before you meet.

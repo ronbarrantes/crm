@@ -6,7 +6,7 @@ import { initials } from '~/lib/format'
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const buttonBase =
-  'inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-4 text-[0.95rem] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex min-h-11 items-center justify-center gap-2 px-4 text-[0.95rem] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50'
 
 const buttonVariants: Record<Variant, string> = {
   primary: 'bg-accent text-on-accent hover:bg-accent-hover',
@@ -26,7 +26,7 @@ function ButtonAnchor({ variant = 'secondary', className, ...props }: ComponentP
 export const ButtonLink = createLink(ButtonAnchor)
 
 export function Card({ className, ...props }: ComponentProps<'section'>) {
-  return <section className={clsx('min-w-0 rounded-2xl border border-rule bg-card', className)} {...props} />
+  return <section className={clsx('min-w-0 border border-rule bg-card', className)} {...props} />
 }
 
 export function CardHeader({ title, action, id }: { title: ReactNode; action?: ReactNode; id?: string }) {
@@ -66,7 +66,7 @@ const tones: Record<Tone, string> = {
 
 export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
-    <span className={clsx('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap', tones[tone], className)}>
+    <span className={clsx('inline-flex items-center gap-1 border px-2 py-0.5 text-xs font-medium whitespace-nowrap', tones[tone], className)}>
       {children}
     </span>
   )
@@ -74,9 +74,9 @@ export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; 
 
 export function Avatar({ name, photoUrl, size = 'md' }: { name: string; photoUrl?: string; size?: 'sm' | 'md' | 'lg' }) {
   const dims = { sm: 'size-8 text-xs', md: 'size-10 text-sm', lg: 'size-16 text-xl' }[size]
-  if (photoUrl) return <img src={photoUrl} alt="" className={clsx('shrink-0 rounded-full object-cover', dims)} />
+  if (photoUrl) return <img src={photoUrl} alt="" className={clsx('shrink-0 object-cover', dims)} />
   return (
-    <span aria-hidden className={clsx('grid shrink-0 place-items-center rounded-full bg-soft font-semibold text-on-soft', dims)}>
+    <span aria-hidden className={clsx('grid shrink-0 place-items-center bg-soft font-semibold text-on-soft', dims)}>
       {initials(name)}
     </span>
   )
@@ -127,7 +127,7 @@ export function ChipGroup<T extends string>({
             key={o.value}
             title={hints?.[o.value]}
             className={clsx(
-              'relative inline-flex min-h-11 cursor-pointer items-center rounded-full border px-3.5 text-sm font-medium transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]',
+              'relative inline-flex min-h-11 cursor-pointer items-center border px-3.5 text-sm font-medium transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]',
               selected(o.value) ? 'border-accent bg-soft text-on-soft' : 'border-rule-strong bg-card text-ink hover:bg-soft',
             )}
           >

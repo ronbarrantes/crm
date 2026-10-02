@@ -34,7 +34,7 @@ function IdeasLayout() {
         <section aria-label="Ideas list" className={clsx('flex flex-col gap-2', ideaId && 'hidden lg:flex')}>
           {adding && (
             <form
-              className="flex flex-col gap-2 rounded-2xl border border-rule bg-card p-3"
+              className="flex flex-col gap-2 border border-rule bg-card p-3"
               onSubmit={async (e) => {
                 e.preventDefault()
                 if (!name.trim()) return
@@ -69,7 +69,7 @@ function IdeasLayout() {
                     to="/ideas/$ideaId"
                     params={{ ideaId: i.id }}
                     aria-current={i.id === ideaId ? 'page' : undefined}
-                    className={clsx('block rounded-2xl border px-4 py-3', i.id === ideaId ? 'border-accent bg-soft' : 'border-rule bg-card hover:bg-soft/60')}
+                    className={clsx('block border px-4 py-3', i.id === ideaId ? 'border-accent bg-soft' : 'border-rule bg-card hover:bg-soft/60')}
                   >
                     <span className="block font-medium">{i.name}</span>
                     <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm text-ink-2">

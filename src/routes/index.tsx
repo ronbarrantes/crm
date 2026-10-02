@@ -44,7 +44,7 @@ function Today() {
       {/* Big capture entry for phones */}
       <Link
         to="/capture"
-        className="mb-5 flex min-h-16 items-center justify-between gap-3 rounded-2xl bg-accent px-5 py-4 text-on-accent sm:hidden"
+        className="mb-5 flex min-h-16 items-center justify-between gap-3 bg-accent px-5 py-4 text-on-accent sm:hidden"
       >
         <span>
           <span className="block text-lg font-semibold">Capture someone</span>
@@ -56,7 +56,7 @@ function Today() {
       {toTriage.length > 0 && (
         <Link
           to="/inbox"
-          className="mb-5 flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-rule bg-soft px-4 py-3 text-on-soft"
+          className="mb-5 flex min-h-14 items-center justify-between gap-3 border border-rule bg-soft px-4 py-3 text-on-soft"
         >
           <span>
             <span className="font-semibold">

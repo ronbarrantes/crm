@@ -133,7 +133,7 @@ function Capture() {
               <img
                 src={photo.preview}
                 alt="Photo to attach"
-                className="size-16 rounded-xl object-cover"
+                className="size-16 object-cover"
               />
               <Button variant="ghost" disabled={saving} onClick={() => setPhoto(undefined)}>
                 <X aria-hidden className="size-4" /> Remove photo
@@ -160,7 +160,7 @@ function Capture() {
           type="submit"
           disabled={saving}
           aria-disabled={saving}
-          className="min-h-14 rounded-2xl bg-accent text-lg font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-70"
+          className="min-h-14 bg-accent text-lg font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-70"
         >
           {saving ? "Saving…" : "Save"}
         </button>
@@ -179,7 +179,7 @@ function Capture() {
           <h2 id="tonight" className="label mb-2">
             Captured tonight · {tonight.length}
           </h2>
-          <ul className="divide-y divide-rule rounded-2xl border border-rule bg-card">
+          <ul className="divide-y divide-rule border border-rule bg-card">
             {tonight.map((p) => (
               <li
                 key={p.id}
@@ -219,7 +219,7 @@ function EventBanner() {
 
   if (event) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-rule bg-soft px-4 py-3 text-on-soft">
+      <div className="flex items-center justify-between gap-3 border border-rule bg-soft px-4 py-3 text-on-soft">
         <p className="min-w-0 text-sm">
           <span className="label block text-on-soft/80">
             Tonight · ends at midnight
@@ -239,7 +239,7 @@ function EventBanner() {
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="flex min-h-12 w-full items-center justify-between rounded-2xl border border-dashed border-rule-strong px-4 text-left text-sm text-ink-2 hover:bg-soft"
+        className="flex min-h-12 w-full items-center justify-between border border-dashed border-rule-strong px-4 text-left text-sm text-ink-2 hover:bg-soft"
       >
         <span>
           <span className="font-medium text-ink">At an event?</span> Tag every
@@ -252,7 +252,7 @@ function EventBanner() {
 
   return (
     <form
-      className="flex flex-col gap-3 rounded-2xl border border-rule bg-card p-4"
+      className="flex flex-col gap-3 border border-rule bg-card p-4"
       onSubmit={(e) => {
         e.preventDefault();
         if (!name.trim()) return;

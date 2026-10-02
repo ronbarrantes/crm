@@ -43,7 +43,7 @@ function Debrief() {
   if (saved) {
     return (
       <Card className="mx-auto max-w-md p-6 text-center" role="status">
-        <span className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-ok-soft text-ok">
+        <span className="mx-auto mb-3 grid size-12 place-items-center bg-ok-soft text-ok">
           <Check aria-hidden />
         </span>
         <h1 className="text-xl">Debrief saved</h1>
@@ -187,14 +187,14 @@ function Debrief() {
           {signals.length > 0 && (
             <ul className="mb-4 flex flex-col gap-2">
               {signals.map((s) => (
-                <li key={s.key} className="flex items-start gap-2 rounded-xl border border-rule px-3 py-2 text-sm">
+                <li key={s.key} className="flex items-start gap-2 border border-rule px-3 py-2 text-sm">
                   <Badge tone={s.type === 'noise' ? 'neutral' : 'accent'} className="mt-0.5">
                     {signalLabel[s.type]}
                   </Badge>
                   <span className="flex-1">{s.text}</span>
                   <button
                     type="button"
-                    className="grid size-8 place-items-center rounded-full text-ink-2 hover:bg-soft"
+                    className="grid size-8 place-items-center text-ink-2 hover:bg-soft"
                     aria-label={`Remove signal: ${s.text}`}
                     onClick={() => setSignals((xs) => xs.filter((x) => x.key !== s.key))}
                   >
@@ -204,7 +204,7 @@ function Debrief() {
               ))}
             </ul>
           )}
-          <div className="flex flex-col gap-3 rounded-xl bg-paper p-3">
+          <div className="flex flex-col gap-3 bg-paper p-3">
             <ChipGroup
               legend="Signal type"
               hideLegend
@@ -273,7 +273,7 @@ function Debrief() {
             />
             <p className="-mt-2 text-xs text-ink-2">{nextStepHint[stepType]}</p>
             {stepType === 'none' ? (
-              <p className="rounded-xl bg-soft p-3 text-sm text-on-soft">
+              <p className="bg-soft p-3 text-sm text-on-soft">
                 That’s OK. Friendly chats count too. If this keeps happening with {person.name.split(' ')[0]}, it may be worth asking for something small next time.
               </p>
             ) : (
@@ -309,11 +309,11 @@ function Debrief() {
 
         <div className="sticky bottom-20 z-10 lg:bottom-4">
           {saveError && (
-            <p role="alert" className="mb-2 rounded-xl bg-danger-soft px-3 py-2 text-sm font-medium text-danger">
+            <p role="alert" className="mb-2 bg-danger-soft px-3 py-2 text-sm font-medium text-danger">
               {saveError}
             </p>
           )}
-          <button type="submit" className="min-h-14 w-full rounded-2xl bg-accent text-lg font-semibold text-on-accent shadow-lg hover:bg-accent-hover">
+          <button type="submit" className="min-h-14 w-full bg-accent text-lg font-semibold text-on-accent hover:bg-accent-hover">
             {saving ? 'Saving…' : 'Save debrief'}
           </button>
         </div>
@@ -353,7 +353,7 @@ function YesNo({ label, hint, value, onChange }: { label: string; hint?: string;
           <label
             key={l}
             className={clsx(
-              'inline-flex min-h-11 min-w-20 cursor-pointer items-center justify-center rounded-full border px-4 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]',
+              'inline-flex min-h-11 min-w-20 cursor-pointer items-center justify-center border px-4 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]',
               value === v ? 'border-accent bg-soft text-on-soft' : 'border-rule-strong bg-card hover:bg-soft',
             )}
           >
