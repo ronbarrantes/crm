@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-dvh lg:grid lg:grid-cols-[232px_1fr]">
       <a
         href="#main"
-        className="sr-only z-50 rounded-lg bg-accent px-4 py-2 text-on-accent focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        className="sr-only z-50 bg-accent px-4 py-2 text-on-accent focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
       >
         Skip to content
       </a>
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={to}
                   to={to}
                   aria-current={active ? 'page' : undefined}
-                  className="mb-2 flex min-h-11 items-center gap-3 rounded-[10px] bg-accent px-3 font-medium text-on-accent hover:bg-accent-hover"
+                  className="mb-2 flex min-h-11 items-center gap-3 bg-accent px-3 font-medium text-on-accent hover:bg-accent-hover"
                 >
                   <Icon aria-hidden className="size-5" />
                   {label}
@@ -61,14 +61,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 to={to}
                 aria-current={active ? 'page' : undefined}
                 className={clsx(
-                  'flex min-h-11 items-center gap-3 rounded-[10px] px-3 font-medium',
+                  'flex min-h-11 items-center gap-3 px-3 font-medium',
                   active ? 'bg-soft text-on-soft' : 'text-ink-2 hover:bg-soft hover:text-on-soft',
                 )}
               >
                 <Icon aria-hidden className="size-5" />
                 {label}
                 {to === '/inbox' && inboxCount > 0 && (
-                  <span className="ml-auto rounded-full bg-accent px-2 text-xs leading-5 text-on-accent">
+                  <span className="ml-auto bg-accent px-2 text-xs leading-5 text-on-accent">
                     {inboxCount}
                     <span className="sr-only"> to triage</span>
                   </span>
@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
         {event && (
-          <p className="mt-6 rounded-xl border border-rule bg-card p-3 text-sm">
+          <p className="mt-6 border border-rule bg-card p-3 text-sm">
             <span className="label block">Event mode</span>
             {event.name}
           </p>
@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           to="/settings"
           aria-current={isActive('/settings') ? 'page' : undefined}
           className={clsx(
-            'mt-auto flex min-h-11 items-center gap-3 rounded-[10px] px-3 font-medium',
+            'mt-auto flex min-h-11 items-center gap-3 px-3 font-medium',
             isActive('/settings') ? 'bg-soft text-on-soft' : 'text-ink-2 hover:bg-soft hover:text-on-soft',
           )}
         >
@@ -102,7 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <img src="/icon.svg" alt="" className="size-6" />
           Fieldnotes
         </Link>
-        <Link to="/settings" className="grid size-11 place-items-center rounded-full text-ink-2 hover:bg-soft" aria-label="Settings">
+        <Link to="/settings" className="grid size-11 place-items-center text-ink-2 hover:bg-soft" aria-label="Settings">
           <Settings aria-hidden className="size-5" />
         </Link>
       </header>
@@ -136,7 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   )}
                 >
                   {'primary' in rest ? (
-                    <span className="-mt-5 grid size-14 place-items-center rounded-full bg-accent text-on-accent shadow-[0_4px_14px_rgba(81,48,216,0.35)]">
+                    <span className="-mt-5 grid size-14 place-items-center bg-accent text-on-accent">
                       <Icon aria-hidden className="size-7" />
                     </span>
                   ) : (
@@ -144,7 +144,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   )}
                   {label}
                   {to === '/inbox' && inboxCount > 0 && (
-                    <span className="absolute top-1.5 left-1/2 ml-2 rounded-full bg-accent px-1.5 text-[0.65rem] leading-4 text-on-accent">
+                    <span className="absolute top-1.5 left-1/2 ml-2 bg-accent px-1.5 text-[0.65rem] leading-4 text-on-accent">
                       {inboxCount}
                       <span className="sr-only"> to triage</span>
                     </span>

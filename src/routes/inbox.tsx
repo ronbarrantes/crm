@@ -40,7 +40,7 @@ function Inbox() {
 
       {items.length === 0 ? (
         <Card className="mx-auto max-w-md px-6 py-10 text-center">
-          <span className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-ok-soft text-ok">
+          <span className="mx-auto mb-3 grid size-12 place-items-center bg-ok-soft text-ok">
             <Check aria-hidden />
           </span>
           <h2 className="text-lg">Inbox zero</h2>
@@ -61,7 +61,7 @@ function Inbox() {
                     onClick={() => select(p.id)}
                     aria-current={p.id === id ? 'true' : undefined}
                     className={clsx(
-                      'flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left',
+                      'flex w-full items-start gap-3 border px-4 py-3 text-left',
                       p.id === id ? 'border-accent bg-soft' : 'border-rule bg-card hover:bg-soft/60',
                     )}
                   >
@@ -171,7 +171,7 @@ function Triage({ person, onBack, onDone }: { person: Person; onBack: () => void
         </div>
       </div>
 
-      <details className="mb-5 rounded-xl border border-rule px-4 py-2 open:pb-4">
+      <details className="mb-5 border border-rule px-4 py-2 open:pb-4">
         <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">Already know them? Merge</summary>
         <MergePanel duplicate={person} form={form} others={others} onDone={onDone} />
       </details>
@@ -311,7 +311,7 @@ function MergePanel({ duplicate, form, others, onDone }: { duplicate: Person; fo
       </Field>
 
       {target && (conflicts.length > 0 || photoConflict) && (
-        <div className="flex flex-col gap-4 rounded-xl bg-paper p-3">
+        <div className="flex flex-col gap-4 bg-paper p-3">
           <p className="text-sm font-medium">Both have different values. Choose what to keep:</p>
           {conflicts.map(({ key, label }) => (
             <ChipGroup<MergeChoice>
@@ -333,12 +333,12 @@ function MergePanel({ duplicate, form, others, onDone }: { duplicate: Person; fo
                   <label
                     key={which}
                     className={clsx(
-                      'flex cursor-pointer flex-col items-center gap-1 rounded-xl border p-2 text-xs has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--focus)]',
+                      'flex cursor-pointer flex-col items-center gap-1 border p-2 text-xs has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--focus)]',
                       choices.photo === which ? 'border-accent bg-soft text-on-soft' : 'border-rule-strong',
                     )}
                   >
                     <input type="radio" name="merge-photo" className="sr-only" checked={choices.photo === which} onChange={() => setChoices((c) => ({ ...c, photo: which }))} />
-                    <img src={which === 'existing' ? target.photoUrl : duplicate.photoUrl} alt="" className="size-20 rounded-lg object-cover" />
+                    <img src={which === 'existing' ? target.photoUrl : duplicate.photoUrl} alt="" className="size-20 object-cover" />
                     {which === 'existing' ? `Keep ${target.name}’s photo` : 'Use the new photo'}
                   </label>
                 ))}

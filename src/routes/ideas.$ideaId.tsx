@@ -63,7 +63,7 @@ function IdeaPage() {
                   <span className="flex-1">{b.statement}</span>
                   <button
                     type="button"
-                    className="grid size-9 shrink-0 place-items-center rounded-full text-ink-2 hover:bg-danger-soft hover:text-danger"
+                    className="grid size-9 shrink-0 place-items-center text-ink-2 hover:bg-danger-soft hover:text-danger"
                     aria-label={`Delete belief: ${b.statement}`}
                     onClick={() => removeBelief(b.id)}
                   >
