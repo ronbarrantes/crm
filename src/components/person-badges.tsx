@@ -9,6 +9,7 @@ export function PersonBadges({ person }: { person: Person }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       <Badge>{stageLabel[person.stage]}</Badge>
+      {person.source === 'card' && <Badge tone="accent">From card{person.sourceEvent ? `: ${person.sourceEvent}` : ''}</Badge>}
       {progress !== 'none' && <Badge tone="ok">Progress: {nextStepLabel[progress]}</Badge>}
       {person.flags.map((f) => (
         <Badge key={f} tone={f === 'great-connector' ? 'accent' : 'warn'}>

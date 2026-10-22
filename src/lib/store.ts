@@ -212,3 +212,22 @@ export async function loadSampleData() {
 export async function clearMyData() {
   return convex.mutation(api.sample.clearMine, {})
 }
+
+// ---------- business card ----------
+
+export type CardInput = Omit<FunctionArgs<typeof api.card.update>, 'photoId'> & {
+  /** A new photo to upload, or null to remove the current one. */
+  photo?: File | null
+}
+
+export async function saveCard({ photo, ...input }: CardInput) {
+  let photoId: ConvexId<'_storage'> | null | undefined = photo === null ? null : undefined
+  if (photo) {
+    const blob = await compressImage(photo, 800)
+    const url = await convex.mutation(api.card.generatePhotoUploadUrl, {})
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': blob.type }, body: blob })
+    if (!res.ok) throw new Error('Photo upload failed')
+    photoId = ((await res.json()) as { storageId: ConvexId<'_storage'> }).storageId
+  }
+  return convex.mutation(api.card.update, { ...input, photoId })
+}

@@ -55,8 +55,33 @@ export default defineSchema({
     introducedBy: v.optional(v.string()),
     needsTriage: v.boolean(),
     followUpAt: v.optional(v.string()),
-    source: v.union(v.literal('capture'), v.literal('manual')),
+    source: v.union(v.literal('capture'), v.literal('manual'), v.literal('card')),
+    /** The `?event=` tag from the card link they scanned, if any. */
+    sourceEvent: v.optional(v.string()),
   }).index('by_owner', ['ownerId']),
+
+  // The owner's public digital business card. Everything here except ownerId is shown to anyone with the link.
+  cards: defineTable({
+    ownerId: v.string(),
+    slug: v.string(),
+    name: v.string(),
+    title: v.optional(v.string()),
+    company: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    website: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    photoId: v.optional(v.id('_storage')),
+    links: v.array(v.object({ label: v.string(), url: v.string() })),
+  })
+    .index('by_owner', ['ownerId'])
+    .index('by_slug', ['slug']),
+
+  // One row per "share your info" submission, kept only for rate limiting.
+  cardSubmissions: defineTable({
+    cardId: v.id('cards'),
+    at: v.number(),
+  }).index('by_card', ['cardId', 'at']),
 
   meetings: defineTable({
     ownerId: v.string(),

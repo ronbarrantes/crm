@@ -46,7 +46,8 @@ export interface Person {
   introducedBy?: string
   needsTriage: boolean
   followUpAt?: string // ISO
-  source: 'capture' | 'manual'
+  source: 'capture' | 'manual' | 'card'
+  sourceEvent?: string // the ?event= tag on the card link they used
 }
 
 export interface MeetingQuestion {

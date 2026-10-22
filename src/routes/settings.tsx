@@ -1,6 +1,7 @@
 import { SignOutButton, useUser } from '@clerk/tanstack-react-start'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import { CardSettings } from '~/components/card-settings'
 import { Button, Card, ChipGroup, PageHeader } from '~/components/ui'
 import { clearMyData, loadSampleData, useData } from '~/lib/store'
 
@@ -41,6 +42,7 @@ function Settings() {
     <div className="mx-auto max-w-xl">
       <PageHeader title="Settings" />
       <div className="flex flex-col gap-4">
+        <CardSettings />
         <Card className="p-4 sm:p-5">
           <ChipGroup
             legend="Appearance"
