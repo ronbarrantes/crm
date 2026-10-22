@@ -9,13 +9,16 @@ import { useIsDark } from '~/lib/use-is-dark'
 import appCss from '~/styles.css?url'
 
 const isSignIn = (path: string) => path === '/sign-in' || path.startsWith('/sign-in/')
+/** The public business card (/c/{slug}) is the only page anyone can open without signing in. */
+const isPublicCard = (path: string) => path.startsWith('/c/')
 
 // Applies the saved theme (auto / light / dark) before paint to avoid a flash.
 const THEME_SCRIPT = `(function(){try{var m=localStorage.getItem('theme');if(m!=='light'&&m!=='dark')m='auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',d);r.style.colorScheme=d?'dark':'light'}catch(e){}})()`
 
 export const Route = createRootRoute({
-  // Everything except the sign-in page needs a signed-in user.
+  // Everything except the sign-in page and the public card needs a signed-in user.
   beforeLoad: async ({ location }) => {
+    if (isPublicCard(location.pathname)) return { userId: null }
     const { userId } = await fetchAuth()
     if (!userId && !isSignIn(location.pathname)) {
       throw redirect({ to: '/sign-in/$', params: { _splat: '' }, search: { redirect_url: location.href } as never })
@@ -75,7 +78,7 @@ function RootDocument({ children }: { children: ReactNode }) {
 }
 
 function RootLayout() {
-  const bare = useRouterState({ select: (s) => isSignIn(s.location.pathname) })
+  const bare = useRouterState({ select: (s) => isSignIn(s.location.pathname) || isPublicCard(s.location.pathname) })
   if (bare) return <Outlet />
   return (
     <AppShell>

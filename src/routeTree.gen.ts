@@ -15,6 +15,7 @@ import { Route as IdeasRouteImport } from './routes/ideas'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as PeopleRouteImport } from './routes/people'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as IdeasIndexRouteImport } from './routes/ideas.index'
 import { Route as IdeasIdeaIdRouteImport } from './routes/ideas.$ideaId'
 import { Route as MeetingsNewRouteImport } from './routes/meetings.new'
@@ -52,6 +53,11 @@ const PeopleRoute = PeopleRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CSlugRoute = CSlugRouteImport.update({
+  id: '/c/$slug',
+  path: '/c/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IdeasIndexRoute = IdeasIndexRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof InboxRoute
   '/people': typeof PeopleRouteWithChildren
   '/settings': typeof SettingsRoute
+  '/c/$slug': typeof CSlugRoute
   '/ideas/$ideaId': typeof IdeasIdeaIdRoute
   '/meetings/new': typeof MeetingsNewRoute
   '/people/$personId': typeof PeoplePersonIdRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/capture': typeof CaptureRoute
   '/inbox': typeof InboxRoute
   '/settings': typeof SettingsRoute
+  '/c/$slug': typeof CSlugRoute
   '/ideas/$ideaId': typeof IdeasIdeaIdRoute
   '/meetings/new': typeof MeetingsNewRoute
   '/people/$personId': typeof PeoplePersonIdRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/inbox': typeof InboxRoute
   '/people': typeof PeopleRouteWithChildren
   '/settings': typeof SettingsRoute
+  '/c/$slug': typeof CSlugRoute
   '/ideas/$ideaId': typeof IdeasIdeaIdRoute
   '/meetings/new': typeof MeetingsNewRoute
   '/people/$personId': typeof PeoplePersonIdRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/people'
     | '/settings'
+    | '/c/$slug'
     | '/ideas/$ideaId'
     | '/meetings/new'
     | '/people/$personId'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/capture'
     | '/inbox'
     | '/settings'
+    | '/c/$slug'
     | '/ideas/$ideaId'
     | '/meetings/new'
     | '/people/$personId'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/people'
     | '/settings'
+    | '/c/$slug'
     | '/ideas/$ideaId'
     | '/meetings/new'
     | '/people/$personId'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   InboxRoute: typeof InboxRoute
   PeopleRoute: typeof PeopleRouteWithChildren
   SettingsRoute: typeof SettingsRoute
+  CSlugRoute: typeof CSlugRoute
   MeetingsNewRoute: typeof MeetingsNewRoute
   SignInSplatRoute: typeof SignInSplatRoute
   MeetingsMeetingIdBriefRoute: typeof MeetingsMeetingIdBriefRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$slug': {
+      id: '/c/$slug'
+      path: '/c/$slug'
+      fullPath: '/c/$slug'
+      preLoaderRoute: typeof CSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ideas/': {
@@ -340,6 +360,7 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRoute: InboxRoute,
   PeopleRoute: PeopleRouteWithChildren,
   SettingsRoute: SettingsRoute,
+  CSlugRoute: CSlugRoute,
   MeetingsNewRoute: MeetingsNewRoute,
   SignInSplatRoute: SignInSplatRoute,
   MeetingsMeetingIdBriefRoute: MeetingsMeetingIdBriefRoute,

@@ -11,7 +11,7 @@ import { flagLabel, flags, progressRank, stageLabel, stages } from '~/lib/vocab'
 
 export const Route = createFileRoute('/people')({ component: PeopleLayout })
 
-type Filter = 'all' | 'due' | `stage:${string}` | `idea:${string}` | `flag:${string}`
+type Filter = 'all' | 'due' | 'card' | `stage:${string}` | `idea:${string}` | `flag:${string}`
 
 /** "Needs attention" order: follow-up due, then open next steps, then strongest progress. */
 function attentionScore(d: Data, p: Person) {
@@ -36,6 +36,7 @@ function PeopleLayout() {
       .filter((p) => !q || [p.name, p.hookLine, p.company, p.role].some((f) => f?.toLowerCase().includes(q)))
       .filter((p) => {
         if (filter === 'all') return true
+        if (filter === 'card') return p.source === 'card'
         if (filter === 'due') return (p.followUpAt && dayDiff(p.followUpAt) <= 0) || openNextSteps(data, p.id).length > 0
         const [kind, value] = filter.split(':')
         if (kind === 'stage') return p.stage === value
@@ -81,6 +82,7 @@ function PeopleLayout() {
               <select id="people-filter" className="field text-sm" value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
                 <option value="all">Everyone</option>
                 <option value="due">Due / open steps</option>
+                <option value="card">From my card</option>
                 <optgroup label="Relationship">
                   {stages.map((s) => (
                     <option key={s} value={`stage:${s}`}>

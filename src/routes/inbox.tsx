@@ -70,6 +70,7 @@ function Inbox() {
                       <span className="block font-medium">{p.name}</span>
                       <span className="block text-sm text-ink-2">{p.hookLine}</span>
                       <span className="mt-1 block text-xs text-ink-2">
+                        {p.source === 'card' && <span className="font-medium text-accent">From card{p.sourceEvent ? ` (${p.sourceEvent})` : ''} · </span>}
                         {ev ? `${ev.name} · ` : ''}
                         {dayAndTime(p.metAt)}
                       </span>
